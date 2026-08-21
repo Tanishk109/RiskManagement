@@ -18,8 +18,8 @@ export type TransactionSummary = {
   currency: string;
   risk_score: number;
   decision: Decision;
-  actual_label: 0 | 1;
-  model_error: boolean;
+  actual_label: 0 | 1 | null;
+  model_error: boolean | null;
   rules_triggered: string[];
   top_factors: Array<{ feature_name: string; feature_value: string | number | null; contribution: number }>;
 };
@@ -54,6 +54,7 @@ export type CostSimulationResponse = {
   provenance: string;
   current: CostOutcome | null;
   proposed: CostOutcome | null;
+  simulation_group_id?: string | null;
 };
 
 export type BootstrapResponse = {

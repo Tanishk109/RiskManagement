@@ -6,12 +6,13 @@ from typing import Any
 
 import yaml
 from merchantshield_ml.cost import CostAssumptions
-from merchantshield_ml.data import load_ieee_cis
 from merchantshield_ml.features import load_feature_sets
-from merchantshield_ml.split import TemporalSplits, temporal_split
+from merchantshield_ml.processed import load_processed_splits
+from merchantshield_ml.split import TemporalSplits
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA = ROOT / "data/raw"
+PROCESSED_DATA = ROOT / "data/processed"
 ARTIFACTS = ROOT / "artifacts"
 FEATURE_CONFIG = ROOT / "ml/configs/feature_sets.yaml"
 TRAINING_CONFIG = ROOT / "ml/configs/training.yaml"
@@ -38,17 +39,7 @@ def cost_assumptions() -> CostAssumptions:
 
 
 def load_splits(features: list[str]) -> TemporalSplits:
-    config = training_config()
-    frame, _ = load_ieee_cis(
-        RAW_DATA / "train_transaction.csv",
-        RAW_DATA / "train_identity.csv",
-        feature_names=features,
-    )
-    return temporal_split(
-        frame,
-        train_fraction=float(config["train_fraction"]),
-        validation_fraction=float(config["validation_fraction"]),
-    )
+    return load_processed_splits(PROCESSED_DATA, features)
 
 
 def replace_marked_section(path: Path, marker: str, body: str) -> None:

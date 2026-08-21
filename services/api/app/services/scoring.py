@@ -12,6 +12,7 @@ from ..config import get_settings
 from ..schemas.risk import Factor, ScoreRequest, ScoreResponse
 from .artifacts import ArtifactUnavailable, load_model_metadata
 from .decision_engine import combine_decisions, decision_from_score
+from .evidence_store import sync_evidence_artifacts
 from .repository import persist_scored_transaction
 from .rules_engine import evaluate_rules, load_rules
 
@@ -58,16 +59,17 @@ def score_transaction(payload: ScoreRequest, db: Session) -> ScoreResponse:
     if payload.persist:
         if not payload.transaction_id:
             raise ValueError("transaction_id is required when persist=true")
+        model_run, threshold_config = sync_evidence_artifacts(db)
         persist_scored_transaction(
             db,
             transaction_id=payload.transaction_id,
             transaction_dt=int(payload.features.get("TransactionDT") or 0),
             amount=float(payload.features.get("TransactionAmt") or 0),
             risk_score=probability,
-            model_version=version,
             decision=final_decision,
-            rules_triggered=[hit.rule_id for hit in hits],
-            feature_payload=dict(payload.features),
+            model_run=model_run,
+            threshold_config=threshold_config,
+            rule_hits=hits,
             factors=factors,
         )
 

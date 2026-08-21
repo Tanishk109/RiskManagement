@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from merchantshield_ml.data import load_ieee_cis
+from merchantshield_ml.processed import load_processed_splits, write_processed_splits
 from merchantshield_ml.split import temporal_split
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -33,3 +34,25 @@ def test_temporal_split_is_ordered_and_has_no_overlap():
     assert set(splits.train["TransactionID"]).isdisjoint(splits.validation["TransactionID"])
     assert set(splits.train["TransactionID"]).isdisjoint(splits.test["TransactionID"])
     assert set(splits.validation["TransactionID"]).isdisjoint(splits.test["TransactionID"])
+
+
+def test_processed_splits_round_trip_as_parquet(tmp_path):
+    frame, validation = load_ieee_cis(
+        FIXTURES / "train_transaction.csv",
+        FIXTURES / "train_identity.csv",
+        feature_names=["ProductCD", "DeviceType"],
+    )
+    splits = temporal_split(frame, train_fraction=0.6, validation_fraction=0.2)
+    manifest = write_processed_splits(
+        splits,
+        tmp_path,
+        feature_names=["ProductCD", "DeviceType"],
+        dataset_validation=validation.to_dict(),
+    )
+    loaded = load_processed_splits(tmp_path, ["ProductCD", "DeviceType"])
+
+    assert manifest["format"] == "parquet"
+    assert len(loaded.train) == len(splits.train)
+    assert len(loaded.validation) == len(splits.validation)
+    assert len(loaded.test) == len(splits.test)
+    assert loaded.boundaries == splits.boundaries

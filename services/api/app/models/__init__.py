@@ -1,3 +1,21 @@
-from .risk import CostConfig, ModelRun, PredictionReason, ReviewCase, Transaction
+from .risk import (
+    CostConfig,
+    CostSimulation,
+    ModelRun,
+    PredictionReason,
+    ReviewCase,
+    RuleHit,
+    ThresholdConfig,
+    Transaction,
+)
 
-__all__ = ["CostConfig", "ModelRun", "PredictionReason", "ReviewCase", "Transaction"]
+__all__ = [
+    "CostConfig",
+    "CostSimulation",
+    "ModelRun",
+    "PredictionReason",
+    "ReviewCase",
+    "RuleHit",
+    "ThresholdConfig",
+    "Transaction",
+]

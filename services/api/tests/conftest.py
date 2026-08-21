@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
 from app.database import Base, get_db
 from app.main import app
-from app.models import PredictionReason, ReviewCase, Transaction
+from app.models import (
+    ModelRun,
+    PredictionReason,
+    ReviewCase,
+    ThresholdConfig,
+    Transaction,
+)
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -48,18 +55,42 @@ def client() -> TestClient:
 
 @pytest.fixture()
 def seeded_review(db: Session) -> int:
+    model_run = ModelRun(
+        model_name="Fixture classifier",
+        model_version="fixture-software-test-only",
+        trained_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        feature_set="fixture",
+        evaluation_status="NOT_EVALUATED",
+        active_rule_count=0,
+        metadata_json={"fixture": True},
+    )
+    db.add(model_run)
+    db.flush()
+    threshold = ThresholdConfig(
+        config_key="fixture-thresholds",
+        model_run_id=model_run.id,
+        review_threshold=0.4,
+        block_threshold=0.8,
+        selection_split="validation",
+        objective="software fixture only",
+        is_active=True,
+    )
+    db.add(threshold)
+    db.flush()
     transaction = Transaction(
         transaction_id="fixture-review-1",
         transaction_dt=120,
         amount=Decimal("2500.00"),
         actual_label=1,
         risk_score=0.62,
-        model_version="fixture-software-test-only",
         decision="REVIEW",
-        rules_triggered=[],
-        feature_payload={},
+        model_run_id=model_run.id,
+        threshold_config_id=threshold.id,
+        source="TEST_FIXTURE",
     )
-    transaction.reasons = [PredictionReason(feature_name="V17", feature_value=None, contribution=0.42)]
+    transaction.reasons = [
+        PredictionReason(rank=1, feature_name="V17", feature_value=None, contribution=0.42)
+    ]
     transaction.review_case = ReviewCase(status="OPEN", model_decision="REVIEW")
     db.add(transaction)
     db.commit()

@@ -26,6 +26,7 @@ Fraud is rare, so a model can achieve high accuracy while missing the cases that
 IEEE-CIS labeled train files
   → left join identity on TransactionID
   → chronological 70/15/15 split
+  → local Parquet splits under data/processed
   → train-only preprocessing
   → Logistic Regression baseline vs XGBoost
   → validation model/feature/threshold/rule decisions
@@ -34,7 +35,7 @@ IEEE-CIS labeled train files
   → Overview / Transactions / Review Queue / Cost Lab
 ```
 
-The backend is the source of truth for model metadata, metrics, transactions, reviews, and cost calculations. The hosted frontend ships a same-origin adapter that shows `Not evaluated yet` when local evidence artifacts are absent.
+PostgreSQL is the application source of truth for model metadata, final metrics, threshold and cost configurations, selected transaction predictions, explanations, rule hits, reviews, and optional cost-simulation history. The full IEEE-CIS dataset never enters PostgreSQL. The hosted frontend shows `Not evaluated yet` when a remote FastAPI deployment is not configured with real evidence.
 
 ## Real Dataset
 
@@ -43,7 +44,7 @@ The only performance dataset is the [IEEE-CIS Fraud Detection](https://www.kaggl
 - `data/raw/train_transaction.csv`
 - `data/raw/train_identity.csv`
 
-The loader performs a left join on `TransactionID`; transactions without an identity row remain valid data. Kaggle raw files, credentials, processed rows, models, and prediction-row exports are gitignored and must stay local. See [data/README.md](data/README.md).
+The loader performs a left join on `TransactionID`; transactions without an identity row remain valid data. Kaggle raw files remain under `data/raw/`; the chronological ML splits are Parquet files under `data/processed/`. Credentials, raw/processed rows, models, and prediction-row exports are gitignored and must stay local. See [data/README.md](data/README.md).
 
 ## Temporal Evaluation Strategy
 
@@ -99,17 +100,21 @@ When protected competition rows cannot be deployed, the public site remains in a
 
 ## Setup
 
-Prerequisites: Node.js 22+, Python 3.11+, Docker (optional), and authorized access to the Kaggle dataset.
+Prerequisites: Node.js 22+, Python 3.11+, a PostgreSQL service (local Docker or managed), and authorized access to the Kaggle dataset.
 
 ```bash
 cp .env.example .env
 make setup
+make db-up
+make db-migrate
 make data-check
+make prepare-data
 make eda
 make train-baseline
 make train-primary
 make error-analysis
 make evaluate
+make db-sync
 make test
 make lint
 make typecheck
@@ -122,13 +127,27 @@ make api   # http://localhost:8000
 make web   # http://localhost:3000
 ```
 
-Or use PostgreSQL, API, and web together:
+Or use PostgreSQL, migrated API, and web together:
 
 ```bash
 docker compose up --build
 ```
 
-The generated OpenAPI docs are available at `http://localhost:8000/docs`. Key endpoints are `/health`, `/api/v1/model`, `/api/v1/metrics/summary`, `/api/v1/transactions`, `/api/v1/score`, `/api/v1/reviews`, and `/api/v1/cost/simulate`.
+The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Key endpoints are `/health`, `/api/v1/model`, `/api/v1/metrics/summary`, `/api/v1/transactions`, `/api/v1/score`, `/api/v1/reviews`, and `/api/v1/cost/simulate`.
+
+## Operational Database
+
+`DATABASE_URL` identifies the PostgreSQL service. The checked-in default targets local Docker; standard `postgres://`, `postgresql://`, and `postgresql+psycopg://` URLs are normalized onto psycopg 3, so Neon or Supabase can be configured without code changes.
+
+Alembic owns schema changes:
+
+```bash
+make db-migrate  # apply migrations
+make db-check    # compare models with migration head on a running database
+make db-sync     # copy final model metadata/metrics into runtime tables
+```
+
+The operational schema contains `transactions`, `prediction_reasons`, `rule_hits`, `review_cases`, `model_runs`, `threshold_configs`, `cost_configs`, and `cost_simulations`. JSONB is limited to variable model metadata such as the feature-name list and split descriptions; transaction features, rule hits, metrics, thresholds, and costs use typed relational columns.
 
 ## Repository Layout
 
@@ -139,7 +158,7 @@ ml/src/merchantshield_ml/ reusable modeling and cost package
 ml/scripts/               real-data EDA, training, evaluation, seeding
 ml/tests/                 correctness fixtures (never performance evidence)
 rules/                    empty-until-evidenced merchant rule config
-data/                     protected local-data instructions only
+data/                     ignored raw CSV and processed Parquet boundaries
 artifacts/                generated metrics/reports/figures/model metadata
 docs/                     architecture, decisions, failures, demo guide
 ```
@@ -152,7 +171,7 @@ docs/                     architecture, decisions, failures, demo guide
 - Cost assumptions vary by merchant and must be reviewed before decisions are operationalized.
 - False positives can harm customer experience, and manual review adds operational cost.
 - The current checkout has no real dataset or final evidence artifacts, so the project is not yet definition-of-done for ML performance.
-- The hosted adapter is stateless; full persistence uses the local FastAPI/PostgreSQL deployment.
+- The hosted adapter is stateless until `NEXT_PUBLIC_API_URL` points to a deployed FastAPI service; operational persistence belongs to that service's PostgreSQL database.
 
 ## Rejected Scope
 

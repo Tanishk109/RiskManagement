@@ -5,7 +5,7 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from .config import get_settings
+from .config import get_settings, operational_database_url
 
 
 class Base(DeclarativeBase):
@@ -14,8 +14,7 @@ class Base(DeclarativeBase):
 
 def _create_engine():
     settings = get_settings()
-    connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-    return create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+    return create_engine(operational_database_url(settings.database_url), pool_pre_ping=True)
 
 
 engine = _create_engine()

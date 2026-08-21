@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from app.database import Base
+
 
 def test_health(client):
     response = client.get("/health")
@@ -65,3 +67,22 @@ def test_score_requires_frozen_real_model(client):
 def test_score_rejects_ground_truth_as_feature(client):
     response = client.post("/api/v1/score", json={"features": {"TransactionAmt": 100, "isFraud": 1}})
     assert response.status_code == 422
+
+
+def test_operational_schema_is_normalized():
+    expected = {
+        "transactions",
+        "prediction_reasons",
+        "review_cases",
+        "rule_hits",
+        "model_runs",
+        "threshold_configs",
+        "cost_configs",
+        "cost_simulations",
+    }
+    assert expected.issubset(Base.metadata.tables)
+    transaction_columns = Base.metadata.tables["transactions"].columns
+    assert "feature_payload" not in transaction_columns
+    assert "rules_triggered" not in transaction_columns
+    assert "model_run_id" in transaction_columns
+    assert "threshold_config_id" in transaction_columns

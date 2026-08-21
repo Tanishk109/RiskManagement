@@ -14,7 +14,7 @@ class Settings(BaseModel):
 
     app_name: str = "MerchantShield API"
     environment: str = "development"
-    database_url: str = "sqlite+pysqlite:///./merchantshield.db"
+    database_url: str = "postgresql+psycopg://merchantshield:merchantshield@localhost:5432/merchantshield"
     model_path: Path = REPOSITORY_ROOT / "artifacts/models/model.joblib"
     model_metadata_path: Path = REPOSITORY_ROOT / "artifacts/models/model_metadata.json"
     metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/final_test_metrics.json"
@@ -25,6 +25,18 @@ class Settings(BaseModel):
 
 def _path_from_env(name: str, fallback: Path) -> Path:
     return Path(os.getenv(name, str(fallback))).expanduser().resolve()
+
+
+def operational_database_url(value: str) -> str:
+    """Normalize provider URLs onto the installed psycopg v3 SQLAlchemy driver."""
+
+    if value.startswith("postgres://"):
+        return "postgresql+psycopg://" + value.removeprefix("postgres://")
+    if value.startswith("postgresql://"):
+        return "postgresql+psycopg://" + value.removeprefix("postgresql://")
+    if value.startswith("postgresql+psycopg://"):
+        return value
+    raise ValueError("DATABASE_URL must point to PostgreSQL (local Docker, Neon, or Supabase)")
 
 
 @lru_cache(maxsize=1)

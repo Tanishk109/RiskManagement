@@ -4,8 +4,9 @@ import argparse
 from decimal import Decimal
 
 import pandas as pd
-from app.database import Base, SessionLocal, engine
+from app.database import SessionLocal
 from app.models import ReviewCase, Transaction
+from app.services.evidence_store import sync_evidence_artifacts
 from common import ARTIFACTS
 from sqlalchemy import select
 
@@ -37,9 +38,9 @@ def main() -> None:
     if not prediction_path.is_file():
         raise FileNotFoundError("Run final held-out evaluation before seeding demo cases")
     cases = select_cases(pd.read_csv(prediction_path), args.per_group)
-    Base.metadata.create_all(bind=engine)
     inserted = 0
     with SessionLocal() as db:
+        model_run, threshold = sync_evidence_artifacts(db, require_metrics=True)
         for row in cases.to_dict(orient="records"):
             transaction_id = str(int(row["TransactionID"]))
             if db.scalar(select(Transaction).where(Transaction.transaction_id == transaction_id)):
@@ -50,10 +51,10 @@ def main() -> None:
                 amount=Decimal(str(row["TransactionAmt"])),
                 actual_label=int(row["isFraud"]),
                 risk_score=float(row["risk_score"]),
-                model_version="held-out-evaluation",
                 decision=str(row["decision"]),
-                rules_triggered=[],
-                feature_payload={},
+                model_run_id=model_run.id,
+                threshold_config_id=threshold.id,
+                source="HELD_OUT_DEMO",
             )
             if transaction.decision == "REVIEW":
                 transaction.review_case = ReviewCase(status="OPEN", model_decision="REVIEW")

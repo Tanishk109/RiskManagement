@@ -76,12 +76,14 @@ class ReviewOut(BaseModel):
     primary_factors: list[str]
     reviewer_decision: str | None = None
     reviewer_reason: str | None = None
+    reviewer_id: str | None = None
     reviewed_at: datetime | None = None
 
 
 class ReviewDecisionRequest(BaseModel):
     decision: ReviewerDecision
     reason: str = Field(min_length=3, max_length=1000)
+    reviewer_id: str | None = Field(default=None, min_length=2, max_length=120)
 
 
 class CostAssumptions(BaseModel):
@@ -125,6 +127,7 @@ class CostSimulationResponse(BaseModel):
     provenance: str
     current: CostOutcome | None
     proposed: CostOutcome | None
+    simulation_group_id: str | None = None
 
 
 class MetricsResponse(BaseModel):

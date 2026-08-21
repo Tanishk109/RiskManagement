@@ -35,6 +35,25 @@ make data-check
 
 The command calculates row counts, fraud count/rate, `TransactionDT` boundaries, identity coverage, and join validity from the actual local files. It prints `STATUS: VALID` only when required columns and uniqueness checks pass.
 
+## Prepare local Parquet splits
+
+After validation, materialize only the configured modeling columns into chronological Parquet splits:
+
+```bash
+make prepare-data
+```
+
+This writes ignored files to:
+
+```text
+data/processed/train.parquet
+data/processed/validation.parquet
+data/processed/test.parquet
+data/processed/manifest.json
+```
+
+Training and evaluation read these files rather than copying IEEE-CIS rows into PostgreSQL. The manifest records exact row counts, source validation, selected feature names, and temporal boundaries.
+
 ## Redistribution
 
-Before committing, publishing, or deploying any extracted IEEE-CIS row, review the current Kaggle competition/data rules. The default project keeps raw data, processed rows, prediction exports, and seeded evaluation cases local only.
+Before committing, publishing, or deploying any extracted IEEE-CIS row, review the current Kaggle competition/data rules. The default project keeps raw data, processed rows, prediction exports, and selected evaluation cases local only. PostgreSQL receives only the evaluation/demo transactions intentionally selected by `make seed-demo`, never the complete dataset.

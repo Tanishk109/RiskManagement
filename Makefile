@@ -3,7 +3,7 @@ PIP ?= .venv/bin/pip
 PYTHON_BOOTSTRAP ?= python3
 PYTHONPATH := ml/src:services/api
 
-.PHONY: install setup data-check eda train-baseline train-primary error-analysis evaluate benchmark seed-demo api web test lint typecheck docker-up
+.PHONY: install setup db-up db-migrate db-check db-sync data-check prepare-data eda train-baseline train-primary error-analysis evaluate benchmark seed-demo api web test lint typecheck docker-up
 
 install: setup
 
@@ -16,6 +16,21 @@ setup:
 
 data-check:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/data_check.py
+
+db-up:
+	docker compose up -d postgres
+
+db-migrate:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c services/api/alembic.ini upgrade head
+
+db-check:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c services/api/alembic.ini check
+
+db-sync:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/sync_runtime_evidence.py
+
+prepare-data:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/prepare_data.py
 
 eda:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/run_eda.py
@@ -39,7 +54,7 @@ benchmark:
 seed-demo:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/export_demo_cases.py --local-only
 
-api:
+api: db-migrate
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m uvicorn app.main:app --reload --port 8000
 
 web:
