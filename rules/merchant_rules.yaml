@@ -1,0 +1,6 @@
+version: 1
+rules: []
+
+# Rules remain empty until validation false-negative analysis produces evidence.
+# When a rule is added, include evidence with rows_affected, fraud_caught,
+# legitimate_rows_affected, and cost_impact. Prefer REVIEW for initial rules.

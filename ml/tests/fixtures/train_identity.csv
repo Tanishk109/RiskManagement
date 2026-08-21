@@ -1,0 +1,7 @@
+TransactionID,DeviceType,DeviceInfo
+1001,desktop,fixture-a
+1002,mobile,fixture-b
+1004,mobile,fixture-c
+1007,desktop,fixture-d
+1009,mobile,fixture-e
+1012,mobile,fixture-f

@@ -1,0 +1,9 @@
+# Merchant-configurable placeholders. These are not industry facts.
+currency: INR
+fraud_loss_fraction: 1.0
+chargeback_fixed_cost: 0
+legitimate_margin_rate: 0.20
+false_positive_fixed_cost: 0
+manual_review_cost: 150
+review_fraud_catch_rate: 0.90
+review_legitimate_approval_rate: 0.98

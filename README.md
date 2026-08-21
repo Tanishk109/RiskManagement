@@ -1,100 +1,167 @@
-# vinext-starter
+# MerchantShield
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+MerchantShield is a defense-only, cost-aware fraud decision engine for merchants. It converts a model risk score and validation-derived rules into one of three actions—`APPROVE`, `REVIEW`, or `BLOCK`—then records human review and measures the estimated merchant cost of that configuration.
 
-## Prerequisites
+Current evidence status: **Not evaluated yet.** The software path is implemented and tested with tiny fixtures, but the protected IEEE-CIS files are not present in this repository. No fixture result is reported as project ML performance.
 
-- Node.js `>=22.13.0`
+## Problem
 
-## Quick Start
+Fraud loss, false declines, chargebacks, and manual review all cost money. A detector that maximizes a single classification metric can still make a poor merchant decision: aggressive blocking may catch more fraud while rejecting profitable legitimate payments, and broad review may overwhelm analysts.
+
+MerchantShield makes the decision economics explicit and keeps the analyst in the loop.
+
+## Why Accuracy Is Not Enough
+
+Fraud is rare, so a model can achieve high accuracy while missing the cases that matter. The primary evidence is therefore:
+
+- precision, recall, F1, and average precision / PR-AUC;
+- false-positive and false-negative counts;
+- decision volumes for approve, review, and block;
+- transparent fraud-loss, false-positive, and review costs;
+- actual model errors from a later-in-time held-out set.
+
+## System Design
+
+```text
+IEEE-CIS labeled train files
+  → left join identity on TransactionID
+  → chronological 70/15/15 split
+  → train-only preprocessing
+  → Logistic Regression baseline vs XGBoost
+  → validation model/feature/threshold/rule decisions
+  → one final held-out test evaluation
+  → FastAPI + PostgreSQL
+  → Overview / Transactions / Review Queue / Cost Lab
+```
+
+The backend is the source of truth for model metadata, metrics, transactions, reviews, and cost calculations. The hosted frontend ships a same-origin adapter that shows `Not evaluated yet` when local evidence artifacts are absent.
+
+## Real Dataset
+
+The only performance dataset is the [IEEE-CIS Fraud Detection](https://www.kaggle.com/c/ieee-fraud-detection) labeled training data:
+
+- `data/raw/train_transaction.csv`
+- `data/raw/train_identity.csv`
+
+The loader performs a left join on `TransactionID`; transactions without an identity row remain valid data. Kaggle raw files, credentials, processed rows, models, and prediction-row exports are gitignored and must stay local. See [data/README.md](data/README.md).
+
+## Temporal Evaluation Strategy
+
+Rows are sorted by `TransactionDT`, then split approximately:
+
+- first 70%: training and train-only preprocessing fit;
+- next 15%: model comparison, feature selection, calibration decisions, threshold tuning, cost search, and rule design;
+- final 15%: held-out test used only after all decisions are frozen.
+
+Automated tests verify chronological ordering and disjoint `TransactionID` sets. Random splitting is not the primary evaluation.
+
+## Models Tested
+
+The implemented comparison is intentionally narrow:
+
+1. Logistic Regression with imputation, scaling, one-hot encoding, and balanced class weights.
+2. XGBoost with train-derived imbalance weighting and two documented feature sets.
+
+Masked IEEE-CIS fields such as `V17` or `C1` are never assigned invented business meanings. The pipeline does not use SMOTE by default and does not run a giant hyperparameter search.
+
+## Actual Results
+
+<!-- RESULTS:START -->
+**Not evaluated yet.** Run the real-data pipeline before presenting precision, recall, F1, PR-AUC, cost, latency, or savings claims.
+<!-- RESULTS:END -->
+
+This section is updated from `artifacts/metrics/final_test_metrics.json` by `ml/scripts/render_readme_results.py`; it is not manually maintained in multiple places.
+
+## Cost Model
+
+For each transaction:
+
+- `APPROVE` fraud incurs the configured fraud fraction of amount plus fixed chargeback cost.
+- `BLOCK` legitimate traffic incurs configured lost margin plus fixed false-positive cost.
+- `REVIEW` always incurs manual review cost, then residual fraud or false-positive cost based on reviewer-effectiveness assumptions.
+
+The defaults in `ml/configs/cost_assumptions.yaml` are scenario placeholders, not industry facts. Cost Lab visually separates model-derived outcomes from merchant-configurable assumptions. Threshold search uses validation predictions only and reports the **lowest estimated cost under the currently selected merchant assumptions**, never a universal optimum.
+
+## What Didn't Work
+
+No real experiment has run in this checkout, so there is no evidence-backed failed-experiment claim yet. Validation experiments append to `artifacts/metrics/experiments.csv`, and modeling decisions belong in [docs/modeling-decisions.md](docs/modeling-decisions.md).
+
+## Product Demo
+
+The UI contains only four main sections:
+
+- Overview: held-out provenance, metrics, decision flow, and readiness.
+- Transactions: actual held-out labels, scores, rules, factors, and visible `MODEL ERROR` flags.
+- Review Queue: persisted analyst decisions with mandatory notes; no automatic retraining.
+- Cost Lab: dual thresholds and configurable merchant assumptions calculated over held-out predictions.
+
+When protected competition rows cannot be deployed, the public site remains in an honest unevaluated state. Synthetic manual-scoring inputs may be added later only if clearly labeled and only after a real model exists.
+
+## Setup
+
+Prerequisites: Node.js 22+, Python 3.11+, Docker (optional), and authorized access to the Kaggle dataset.
 
 ```bash
-npm install
-npm run dev
-npm run build
+cp .env.example .env
+make setup
+make data-check
+make eda
+make train-baseline
+make train-primary
+make error-analysis
+make evaluate
+make test
+make lint
+make typecheck
 ```
 
-This starter does not use `wrangler.jsonc`.
+Run the services separately:
 
-## Included Shape
-
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+make api   # http://localhost:8000
+make web   # http://localhost:3000
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+Or use PostgreSQL, API, and web together:
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+```bash
+docker compose up --build
+```
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+The generated OpenAPI docs are available at `http://localhost:8000/docs`. Key endpoints are `/health`, `/api/v1/model`, `/api/v1/metrics/summary`, `/api/v1/transactions`, `/api/v1/score`, `/api/v1/reviews`, and `/api/v1/cost/simulate`.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+## Repository Layout
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+```text
+apps/web/                 frontend package boundary / Sites adapter
+services/api/             FastAPI, SQLAlchemy, PostgreSQL, rules, reviews
+ml/src/merchantshield_ml/ reusable modeling and cost package
+ml/scripts/               real-data EDA, training, evaluation, seeding
+ml/tests/                 correctness fixtures (never performance evidence)
+rules/                    empty-until-evidenced merchant rule config
+data/                     protected local-data instructions only
+artifacts/                generated metrics/reports/figures/model metadata
+docs/                     architecture, decisions, failures, demo guide
+```
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+## Limitations
 
-## Useful Commands
+- The IEEE-CIS data is anonymized and represents a particular commerce environment and time period.
+- Some fields have masked semantics, which limits business interpretation.
+- Fraud patterns change over time; offline performance does not equal production performance.
+- Cost assumptions vary by merchant and must be reviewed before decisions are operationalized.
+- False positives can harm customer experience, and manual review adds operational cost.
+- The current checkout has no real dataset or final evidence artifacts, so the project is not yet definition-of-done for ML performance.
+- The hosted adapter is stateless; full persistence uses the local FastAPI/PostgreSQL deployment.
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+## Rejected Scope
 
-## Learn More
+We deliberately did not implement Kafka, Neo4j, GNNs, an LLM analyst chatbot, fraud-ring visualization, automatic retraining, or complex microservices. The build prioritizes a complete, measurable fraud-decision loop over superficial breadth.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+## Future Work
+
+After the four-module loop has genuine held-out evidence, possible future work includes graph-based abuse-ring detection, stream processing, production drift detection, multi-merchant models, automated rule backtesting, analyst copilots, active learning, and real chargeback feedback. None is presented as implemented.
+
+## Safety and Data Governance
+
+MerchantShield detects and mitigates fraud; it does not generate attacks or help evade detection. API inputs are validated, SQLAlchemy produces parameterized queries, credentials live only in ignored environment files, and protected dataset rows are not published automatically.

@@ -30,6 +30,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -38,3 +39,31 @@ yarn-error.log*
 /.wrangler/
 /outputs/
 /work/
+
+# Python
+/.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+/merchantshield.db
+
+# IEEE-CIS protected/local data
+/data/raw/
+/data/processed/
+/data/cache/
+/data/**/*.csv
+/data/**/*.parquet
+/data/**/*.pkl
+/data/**/*.feather
+/.kaggle/
+kaggle.json
+
+# Local model bundles and prediction rows
+/artifacts/models/*.joblib
+/artifacts/metrics/*predictions*.csv
+/artifacts/metrics/*cases*.csv
+
+# Local benchmark/runtime outputs
+/artifacts/metrics/inference_benchmark.json

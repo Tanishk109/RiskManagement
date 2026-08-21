@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from . import models  # noqa: F401
+from .config import get_settings
+from .database import Base, engine
+from .routers import cost, evidence, reviews, scoring, transactions
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+settings = get_settings()
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    description="Defense-only, cost-aware fraud decisions with honest evidence provenance.",
+    lifespan=lifespan,
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
+)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+app.include_router(evidence.router)
+app.include_router(transactions.router)
+app.include_router(reviews.router)
+app.include_router(scoring.router)
+app.include_router(cost.router)

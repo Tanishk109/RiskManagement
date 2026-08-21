@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const title = "MerchantShield AI — Autonomous Fraud Risk Operations";
-const description = "Defense-only payment fraud operations with real-time scoring, rules, graph signals, human review and honest held-out cost metrics.";
+const title = "MerchantShield — Cost-Aware Fraud Decision Engine";
+const description = "A defense-only fraud risk workflow for evidence-backed scoring, approve/review/block decisions, human review, and transparent merchant cost analysis.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       type: "website",
-      images: [{ url: `${origin}/og.png`, width: 1200, height: 630, alt: "MerchantShield AI fraud risk operations command center" }],
+      images: [{ url: `${origin}/og.png`, width: 1200, height: 630, alt: "MerchantShield cost-aware fraud decision engine" }],
     },
     twitter: {
       card: "summary_large_image",
@@ -46,8 +46,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport = {
-  themeColor: "#080b0a",
-  colorScheme: "dark",
+  themeColor: "#f4f6f2",
+  colorScheme: "light",
 };
 
 export default function RootLayout({

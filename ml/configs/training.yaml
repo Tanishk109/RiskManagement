@@ -1,0 +1,18 @@
+random_seed: 42
+train_fraction: 0.70
+validation_fraction: 0.15
+baseline_feature_set: baseline_numeric
+primary_feature_sets:
+  - interpretable
+  - expanded
+primary_parameters:
+  n_estimators: 450
+  max_depth: 6
+  learning_rate: 0.06
+  subsample: 0.85
+  colsample_bytree: 0.80
+  min_child_weight: 2
+  reg_lambda: 2.0
+  eval_metric: aucpr
+  tree_method: hist
+  n_jobs: -1

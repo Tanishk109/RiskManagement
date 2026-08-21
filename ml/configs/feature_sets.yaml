@@ -1,0 +1,74 @@
+feature_sets:
+  baseline_numeric:
+    - TransactionAmt
+    - TransactionDT
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+    - D1
+    - D2
+    - D3
+  interpretable:
+    - TransactionAmt
+    - TransactionDT
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - R_emaildomain
+    - DeviceType
+    - DeviceInfo
+  expanded:
+    - TransactionAmt
+    - TransactionDT
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - R_emaildomain
+    - DeviceType
+    - DeviceInfo
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+    - C6
+    - C7
+    - C8
+    - C9
+    - C10
+    - C11
+    - C12
+    - C13
+    - C14
+    - D1
+    - D2
+    - D3
+    - D4
+    - D5
+    - V1
+    - V2
+    - V3
+    - V4
+    - V5
+    - V6
+    - V7
+    - V8
+    - V9
+    - V10
+    - V11
+    - V12
+    - V13
+    - V14
+    - V15
+    - V16
+    - V17
+    - V18
+    - V19
+    - V20
+
+# C*, D*, and V* are masked IEEE-CIS fields. Their business meanings are not
+# inferred anywhere in MerchantShield.
