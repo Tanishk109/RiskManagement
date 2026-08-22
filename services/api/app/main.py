@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models  # noqa: F401
 from .config import get_settings
-from .routers import cost, evidence, reviews, scoring, transactions
+from .routers import cost, evidence, project, reviews, scoring, transactions
 
 settings = get_settings()
 app = FastAPI(
@@ -28,6 +28,7 @@ def health() -> dict[str, str]:
 
 
 app.include_router(evidence.router)
+app.include_router(project.router)
 app.include_router(transactions.router)
 app.include_router(reviews.router)
 app.include_router(scoring.router)

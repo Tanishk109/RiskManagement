@@ -20,7 +20,24 @@ class Settings(BaseModel):
     metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/final_test_metrics.json"
     predictions_path: Path = REPOSITORY_ROOT / "artifacts/metrics/final_test_predictions.csv"
     rules_path: Path = REPOSITORY_ROOT / "rules/merchant_rules.yaml"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    eda_summary_path: Path = REPOSITORY_ROOT / "artifacts/reports/eda_summary.json"
+    split_metadata_path: Path = REPOSITORY_ROOT / "data/processed/ieee-cis/split_metadata.json"
+    baseline_metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/baseline_validation.json"
+    catboost_metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/catboost_validation.json"
+    catboost_metadata_path: Path = REPOSITORY_ROOT / "artifacts/models/catboost_candidate_metadata.json"
+    experiments_path: Path = REPOSITORY_ROOT / "artifacts/metrics/experiments.csv"
+    feature_importance_path: Path = REPOSITORY_ROOT / "artifacts/reports/catboost_feature_importance.csv"
+    baseline_validation_predictions_path: Path = (
+        REPOSITORY_ROOT / "artifacts/predictions/baseline_validation.parquet"
+    )
+    catboost_validation_predictions_path: Path = (
+        REPOSITORY_ROOT / "artifacts/predictions/catboost_identity_ablation_validation.parquet"
+    )
+    validation_data_path: Path = REPOSITORY_ROOT / "data/processed/ieee-cis/validation.parquet"
+    threshold_analysis_path: Path = REPOSITORY_ROOT / "artifacts/metrics/threshold_analysis.json"
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://localhost:3001"]
+    )
 
 
 def _path_from_env(name: str, fallback: Path) -> Path:
@@ -42,7 +59,13 @@ def operational_database_url(value: str) -> str:
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     defaults = Settings()
-    origins = [item.strip() for item in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if item.strip()]
+    origins = [
+        item.strip()
+        for item in os.getenv(
+            "CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"
+        ).split(",")
+        if item.strip()
+    ]
     return Settings(
         environment=os.getenv("ENVIRONMENT", defaults.environment),
         database_url=os.getenv("DATABASE_URL", defaults.database_url),
@@ -51,5 +74,24 @@ def get_settings() -> Settings:
         metrics_path=_path_from_env("METRICS_PATH", defaults.metrics_path),
         predictions_path=_path_from_env("PREDICTIONS_PATH", defaults.predictions_path),
         rules_path=_path_from_env("RULES_PATH", defaults.rules_path),
+        eda_summary_path=_path_from_env("EDA_SUMMARY_PATH", defaults.eda_summary_path),
+        split_metadata_path=_path_from_env("SPLIT_METADATA_PATH", defaults.split_metadata_path),
+        baseline_metrics_path=_path_from_env("BASELINE_METRICS_PATH", defaults.baseline_metrics_path),
+        catboost_metrics_path=_path_from_env("CATBOOST_METRICS_PATH", defaults.catboost_metrics_path),
+        catboost_metadata_path=_path_from_env("CATBOOST_METADATA_PATH", defaults.catboost_metadata_path),
+        experiments_path=_path_from_env("EXPERIMENTS_PATH", defaults.experiments_path),
+        feature_importance_path=_path_from_env(
+            "FEATURE_IMPORTANCE_PATH", defaults.feature_importance_path
+        ),
+        baseline_validation_predictions_path=_path_from_env(
+            "BASELINE_VALIDATION_PREDICTIONS_PATH", defaults.baseline_validation_predictions_path
+        ),
+        catboost_validation_predictions_path=_path_from_env(
+            "CATBOOST_VALIDATION_PREDICTIONS_PATH", defaults.catboost_validation_predictions_path
+        ),
+        validation_data_path=_path_from_env("VALIDATION_DATA_PATH", defaults.validation_data_path),
+        threshold_analysis_path=_path_from_env(
+            "THRESHOLD_ANALYSIS_PATH", defaults.threshold_analysis_path
+        ),
         cors_origins=origins,
     )

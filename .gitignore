@@ -62,6 +62,8 @@ kaggle.json
 
 # Local model bundles and prediction rows
 /artifacts/models/*.joblib
+/artifacts/models/*.cbm
+/artifacts/predictions/
 /artifacts/metrics/*predictions*.csv
 /artifacts/metrics/*cases*.csv
 

@@ -1,0 +1,1455 @@
+{
+  "artifact_type": "validation_baseline_experiment",
+  "status": "validation_baseline",
+  "model": "Logistic Regression",
+  "model_version": "logistic-baseline-v1",
+  "trained_at": "2026-08-22T04:24:13.857207+00:00",
+  "training_split": "train",
+  "validation_split": "validation",
+  "held_out_test_accessed": false,
+  "held_out_test_predictions_generated": false,
+  "default_evaluation_threshold": 0.5,
+  "threshold_optimized": false,
+  "average_precision_definition": "sklearn.metrics.average_precision_score",
+  "feature_sets": {
+    "baseline_core": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain"
+    ],
+    "baseline_core_time": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain",
+      "TransactionDT"
+    ],
+    "baseline_core_masked": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain",
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "D1",
+      "D2",
+      "D3"
+    ],
+    "baseline_core_identity": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain",
+      "identity_available",
+      "DeviceType",
+      "DeviceInfo",
+      "R_emaildomain"
+    ],
+    "baseline_conservative_combined": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain",
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "D1",
+      "D2",
+      "D3",
+      "identity_available",
+      "DeviceType",
+      "DeviceInfo",
+      "R_emaildomain"
+    ],
+    "baseline_conservative_combined_time": [
+      "TransactionAmt",
+      "ProductCD",
+      "card4",
+      "card6",
+      "P_emaildomain",
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "D1",
+      "D2",
+      "D3",
+      "identity_available",
+      "DeviceType",
+      "DeviceInfo",
+      "R_emaildomain",
+      "TransactionDT"
+    ]
+  },
+  "training_cardinality": {
+    "DeviceInfo": {
+      "non_null_categories": 1546,
+      "missing_rows": 322016
+    },
+    "P_emaildomain": {
+      "non_null_categories": 59,
+      "missing_rows": 64296
+    },
+    "R_emaildomain": {
+      "non_null_categories": 60,
+      "missing_rows": 310337
+    }
+  },
+  "experiments": [
+    {
+      "experiment_id": "lr-01-core-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_core",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 5,
+      "number_of_encoded_features": 76,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.09244976659224681,
+      "recall": 0.598948060486522,
+      "f1": 0.16017582417582418,
+      "average_precision": 0.13518896071857245,
+      "roc_auc": 0.7472469217300859,
+      "tp": 1822,
+      "fp": 17886,
+      "tn": 67653,
+      "fn": 1220,
+      "predicted_fraud_count": 19708,
+      "predicted_fraud_rate": 0.2224856346169043,
+      "accuracy": 0.7843104051658933,
+      "brier_score": 0.17760480679066176,
+      "default_threshold": 0.5,
+      "training_seconds": 0.4009613329981221,
+      "inference_seconds": 0.03885779200209072,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        3
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-02-core_time-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_core_time",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 6,
+      "number_of_encoded_features": 77,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.07781111153305738,
+      "recall": 0.6735700197238659,
+      "f1": 0.1395063829787234,
+      "average_precision": 0.13314342012373068,
+      "roc_auc": 0.7471683158792143,
+      "tp": 2049,
+      "fp": 24284,
+      "tn": 61255,
+      "fn": 993,
+      "predicted_fraud_count": 26333,
+      "predicted_fraud_rate": 0.2972759395355663,
+      "accuracy": 0.7146453528409027,
+      "brier_score": 0.25232199824027896,
+      "default_threshold": 0.5,
+      "training_seconds": 0.4093808750003518,
+      "inference_seconds": 0.04078991600181325,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        3
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-03-core_masked-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_core_masked",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 13,
+      "number_of_encoded_features": 84,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.10282138425851,
+      "recall": 0.6265614727153189,
+      "f1": 0.17665322767505445,
+      "average_precision": 0.18328872191367465,
+      "roc_auc": 0.7909108962366721,
+      "tp": 1906,
+      "fp": 16631,
+      "tn": 68908,
+      "fn": 1136,
+      "predicted_fraud_count": 18537,
+      "predicted_fraud_rate": 0.20926609543807362,
+      "accuracy": 0.799426513586435,
+      "brier_score": 0.16993026161170113,
+      "default_threshold": 0.5,
+      "training_seconds": 1.048373707999417,
+      "inference_seconds": 0.05525787499936996,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        5
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-04-core_identity-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_core_identity",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 9,
+      "number_of_encoded_features": 1688,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.10209424083769633,
+      "recall": 0.5641025641025641,
+      "f1": 0.17289672544080603,
+      "average_precision": 0.15954356938460082,
+      "roc_auc": 0.7413210055655202,
+      "tp": 1716,
+      "fp": 15092,
+      "tn": 70447,
+      "fn": 1326,
+      "predicted_fraud_count": 16808,
+      "predicted_fraud_rate": 0.1897472369921315,
+      "accuracy": 0.814655513033269,
+      "brier_score": 0.16472378082061676,
+      "default_threshold": 0.5,
+      "training_seconds": 0.9935455409977294,
+      "inference_seconds": 0.07873599999948055,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        4
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-05-conservative_combined-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_conservative_combined",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 17,
+      "number_of_encoded_features": 1696,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.11342155009451796,
+      "recall": 0.591715976331361,
+      "f1": 0.19035532994923857,
+      "average_precision": 0.20032816989385402,
+      "roc_auc": 0.7836003753250677,
+      "tp": 1800,
+      "fp": 14070,
+      "tn": 71469,
+      "fn": 1242,
+      "predicted_fraud_count": 15870,
+      "predicted_fraud_rate": 0.17915805872591187,
+      "accuracy": 0.8271412605411996,
+      "brier_score": 0.1577253069949093,
+      "default_threshold": 0.5,
+      "training_seconds": 1.946814541999629,
+      "inference_seconds": 0.1095269580000604,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        5
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-06-conservative_combined_time-balanced",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_conservative_combined_time",
+      "class_weight": "balanced",
+      "number_of_features_before_encoding": 18,
+      "number_of_encoded_features": 1697,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.07853829538614071,
+      "recall": 0.7291255752794215,
+      "f1": 0.14180225681680145,
+      "average_precision": 0.2000835555865717,
+      "roc_auc": 0.7824347689996018,
+      "tp": 2218,
+      "fp": 26023,
+      "tn": 59516,
+      "fn": 824,
+      "predicted_fraud_count": 28241,
+      "predicted_fraud_rate": 0.31881554735214096,
+      "accuracy": 0.6969214617130084,
+      "brier_score": 0.2153232994082384,
+      "default_threshold": 0.5,
+      "training_seconds": 2.024029625001276,
+      "inference_seconds": 0.11161495900159935,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        5
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    },
+    {
+      "experiment_id": "lr-07-conservative_combined-none",
+      "model": "Logistic Regression",
+      "model_version": "logistic-baseline-v1",
+      "feature_set": "baseline_conservative_combined",
+      "class_weight": "none",
+      "number_of_features_before_encoding": 17,
+      "number_of_encoded_features": 1696,
+      "training_rows": 413378,
+      "validation_rows": 88581,
+      "precision": 0.7233333333333334,
+      "recall": 0.07133464825772518,
+      "f1": 0.1298623578695392,
+      "average_precision": 0.23143384660363925,
+      "roc_auc": 0.7934804128969273,
+      "tp": 217,
+      "fp": 83,
+      "tn": 85456,
+      "fn": 2825,
+      "predicted_fraud_count": 300,
+      "predicted_fraud_rate": 0.0033867307887696005,
+      "accuracy": 0.9671712895541933,
+      "brier_score": 0.029639545911918738,
+      "default_threshold": 0.5,
+      "training_seconds": 2.099973874999705,
+      "inference_seconds": 0.10800029200254357,
+      "solver": "newton-cholesky",
+      "max_iter": 100,
+      "iterations": [
+        6
+      ],
+      "converged": true,
+      "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+    }
+  ],
+  "best_experiment": {
+    "experiment_id": "lr-07-conservative_combined-none",
+    "model": "Logistic Regression",
+    "model_version": "logistic-baseline-v1",
+    "feature_set": "baseline_conservative_combined",
+    "class_weight": "none",
+    "number_of_features_before_encoding": 17,
+    "number_of_encoded_features": 1696,
+    "training_rows": 413378,
+    "validation_rows": 88581,
+    "precision": 0.7233333333333334,
+    "recall": 0.07133464825772518,
+    "f1": 0.1298623578695392,
+    "average_precision": 0.23143384660363925,
+    "roc_auc": 0.7934804128969273,
+    "tp": 217,
+    "fp": 83,
+    "tn": 85456,
+    "fn": 2825,
+    "predicted_fraud_count": 300,
+    "predicted_fraud_rate": 0.0033867307887696005,
+    "accuracy": 0.9671712895541933,
+    "brier_score": 0.029639545911918738,
+    "default_threshold": 0.5,
+    "training_seconds": 2.099973874999705,
+    "inference_seconds": 0.10800029200254357,
+    "solver": "newton-cholesky",
+    "max_iter": 100,
+    "iterations": [
+      6
+    ],
+    "converged": true,
+    "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+  },
+  "best_balanced_experiment": {
+    "experiment_id": "lr-05-conservative_combined-balanced",
+    "model": "Logistic Regression",
+    "model_version": "logistic-baseline-v1",
+    "feature_set": "baseline_conservative_combined",
+    "class_weight": "balanced",
+    "number_of_features_before_encoding": 17,
+    "number_of_encoded_features": 1696,
+    "training_rows": 413378,
+    "validation_rows": 88581,
+    "precision": 0.11342155009451796,
+    "recall": 0.591715976331361,
+    "f1": 0.19035532994923857,
+    "average_precision": 0.20032816989385402,
+    "roc_auc": 0.7836003753250677,
+    "tp": 1800,
+    "fp": 14070,
+    "tn": 71469,
+    "fn": 1242,
+    "predicted_fraud_count": 15870,
+    "predicted_fraud_rate": 0.17915805872591187,
+    "accuracy": 0.8271412605411996,
+    "brier_score": 0.1577253069949093,
+    "default_threshold": 0.5,
+    "training_seconds": 1.946814541999629,
+    "inference_seconds": 0.1095269580000604,
+    "solver": "newton-cholesky",
+    "max_iter": 100,
+    "iterations": [
+      5
+    ],
+    "converged": true,
+    "notes": "Validation only; Average Precision uses sklearn average_precision_score; classification metrics use fixed threshold 0.50. No fit warnings."
+  },
+  "selection_reason": "Highest validation Average Precision; F1 and recall are deterministic tie-breakers. Accuracy was not used for selection, and threshold 0.50 was not optimized.",
+  "ablations": {
+    "transaction_dt_core": {
+      "precision": -0.014638655059189432,
+      "recall": 0.07462195923734383,
+      "f1": -0.02066944119710079,
+      "average_precision": -0.0020455405948417715,
+      "roc_auc": -7.860585087160477e-05
+    },
+    "transaction_dt_combined": {
+      "precision": -0.03488325470837725,
+      "recall": 0.13740959894806049,
+      "f1": -0.04855307313243712,
+      "average_precision": -0.0002446143072823148,
+      "roc_auc": -0.0011656063254658067
+    },
+    "identity_core": {
+      "precision": 0.009644474245449522,
+      "recall": -0.03484549638395795,
+      "f1": 0.012720901264981849,
+      "average_precision": 0.02435460866602837,
+      "roc_auc": -0.0059259161645657255
+    },
+    "identity_combined": {
+      "precision": 0.010600165836007952,
+      "recall": -0.03484549638395795,
+      "f1": 0.013702102274184114,
+      "average_precision": 0.017039447980179367,
+      "roc_auc": -0.007310520911604446
+    },
+    "masked_numeric": {
+      "precision": 0.010371617666263197,
+      "recall": 0.027613412228796874,
+      "f1": 0.01647740349923027,
+      "average_precision": 0.0480997611951022,
+      "roc_auc": 0.04366397450658621
+    },
+    "class_weight_unweighted_minus_balanced": {
+      "precision": 0.6099117832388155,
+      "recall": -0.5203813280736358,
+      "f1": -0.060492972079699364,
+      "average_precision": 0.03110567670978523,
+      "roc_auc": 0.009880037571859623
+    }
+  },
+  "validation_error_analysis": {
+    "default_threshold": 0.5,
+    "minimum_slice_fraud_support": 50,
+    "amount_bucket_definition": "Fixed, left-closed ranges: 0\u201325, 25\u201350, 50\u2013100, 100\u2013250, 250\u2013500, 500+",
+    "outcomes": {
+      "false_negatives": {
+        "row_count": 2825,
+        "transaction_amount": {
+          "count": 2825,
+          "total": 481947.732,
+          "mean": 170.600967079646,
+          "median": 77.0,
+          "p90": 445.0,
+          "p95": 653.5899999999995,
+          "max": 5191.0
+        },
+        "categorical_distribution": {
+          "ProductCD": [
+            {
+              "category": "W",
+              "count": 1485,
+              "share_percent": 52.56637168141593
+            },
+            {
+              "category": "C",
+              "count": 946,
+              "share_percent": 33.48672566371681
+            },
+            {
+              "category": "R",
+              "count": 153,
+              "share_percent": 5.415929203539823
+            },
+            {
+              "category": "H",
+              "count": 134,
+              "share_percent": 4.743362831858407
+            },
+            {
+              "category": "S",
+              "count": 107,
+              "share_percent": 3.7876106194690267
+            }
+          ],
+          "card4": [
+            {
+              "category": "visa",
+              "count": 1855,
+              "share_percent": 65.66371681415929
+            },
+            {
+              "category": "mastercard",
+              "count": 819,
+              "share_percent": 28.991150442477878
+            },
+            {
+              "category": "discover",
+              "count": 122,
+              "share_percent": 4.31858407079646
+            },
+            {
+              "category": "american express",
+              "count": 29,
+              "share_percent": 1.0265486725663717
+            }
+          ],
+          "card6": [
+            {
+              "category": "debit",
+              "count": 1548,
+              "share_percent": 54.796460176991154
+            },
+            {
+              "category": "credit",
+              "count": 1277,
+              "share_percent": 45.203539823008846
+            }
+          ],
+          "identity_available": [
+            {
+              "category": "False",
+              "count": 1519,
+              "share_percent": 53.769911504424776
+            },
+            {
+              "category": "True",
+              "count": 1306,
+              "share_percent": 46.230088495575224
+            }
+          ],
+          "DeviceType": [
+            {
+              "category": "<MISSING>",
+              "count": 1546,
+              "share_percent": 54.72566371681416
+            },
+            {
+              "category": "desktop",
+              "count": 730,
+              "share_percent": 25.84070796460177
+            },
+            {
+              "category": "mobile",
+              "count": 549,
+              "share_percent": 19.43362831858407
+            }
+          ]
+        }
+      },
+      "true_positives": {
+        "row_count": 217,
+        "transaction_amount": {
+          "count": 217,
+          "total": 14959.856,
+          "mean": 68.93942857142856,
+          "median": 83.859,
+          "p90": 102.714,
+          "p95": 119.994,
+          "max": 300.0
+        },
+        "categorical_distribution": {
+          "ProductCD": [
+            {
+              "category": "C",
+              "count": 204,
+              "share_percent": 94.00921658986175
+            },
+            {
+              "category": "R",
+              "count": 7,
+              "share_percent": 3.225806451612903
+            },
+            {
+              "category": "H",
+              "count": 6,
+              "share_percent": 2.7649769585253456
+            }
+          ],
+          "card4": [
+            {
+              "category": "visa",
+              "count": 129,
+              "share_percent": 59.44700460829493
+            },
+            {
+              "category": "mastercard",
+              "count": 88,
+              "share_percent": 40.55299539170507
+            }
+          ],
+          "card6": [
+            {
+              "category": "credit",
+              "count": 141,
+              "share_percent": 64.97695852534562
+            },
+            {
+              "category": "debit",
+              "count": 76,
+              "share_percent": 35.02304147465438
+            }
+          ],
+          "identity_available": [
+            {
+              "category": "True",
+              "count": 212,
+              "share_percent": 97.6958525345622
+            },
+            {
+              "category": "False",
+              "count": 5,
+              "share_percent": 2.304147465437788
+            }
+          ],
+          "DeviceType": [
+            {
+              "category": "desktop",
+              "count": 119,
+              "share_percent": 54.83870967741935
+            },
+            {
+              "category": "mobile",
+              "count": 91,
+              "share_percent": 41.935483870967744
+            },
+            {
+              "category": "<MISSING>",
+              "count": 7,
+              "share_percent": 3.225806451612903
+            }
+          ]
+        }
+      },
+      "false_positives": {
+        "row_count": 83,
+        "transaction_amount": {
+          "count": 83,
+          "total": 3669.4860000000003,
+          "mean": 44.21067469879519,
+          "median": 31.66,
+          "p90": 88.162,
+          "p95": 157.09289999999993,
+          "max": 176.448
+        },
+        "categorical_distribution": {
+          "ProductCD": [
+            {
+              "category": "C",
+              "count": 82,
+              "share_percent": 98.79518072289157
+            },
+            {
+              "category": "R",
+              "count": 1,
+              "share_percent": 1.2048192771084338
+            }
+          ],
+          "card4": [
+            {
+              "category": "visa",
+              "count": 45,
+              "share_percent": 54.21686746987952
+            },
+            {
+              "category": "mastercard",
+              "count": 38,
+              "share_percent": 45.78313253012048
+            }
+          ],
+          "card6": [
+            {
+              "category": "credit",
+              "count": 51,
+              "share_percent": 61.44578313253012
+            },
+            {
+              "category": "debit",
+              "count": 32,
+              "share_percent": 38.55421686746988
+            }
+          ],
+          "identity_available": [
+            {
+              "category": "True",
+              "count": 82,
+              "share_percent": 98.79518072289157
+            },
+            {
+              "category": "False",
+              "count": 1,
+              "share_percent": 1.2048192771084338
+            }
+          ],
+          "DeviceType": [
+            {
+              "category": "mobile",
+              "count": 44,
+              "share_percent": 53.01204819277108
+            },
+            {
+              "category": "desktop",
+              "count": 38,
+              "share_percent": 45.78313253012048
+            },
+            {
+              "category": "<MISSING>",
+              "count": 1,
+              "share_percent": 1.2048192771084338
+            }
+          ]
+        }
+      },
+      "true_negatives": {
+        "row_count": 85456,
+        "transaction_amount": {
+          "count": 85456,
+          "total": 11446916.620000001,
+          "mean": 133.95099957873057,
+          "median": 67.95,
+          "p90": 261.95,
+          "p95": 424.95,
+          "max": 5279.95
+        },
+        "categorical_distribution": {
+          "ProductCD": [
+            {
+              "category": "W",
+              "count": 70806,
+              "share_percent": 82.85667478000374
+            },
+            {
+              "category": "C",
+              "count": 7893,
+              "share_percent": 9.236332147537913
+            },
+            {
+              "category": "R",
+              "count": 3204,
+              "share_percent": 3.749297884291331
+            },
+            {
+              "category": "H",
+              "count": 2210,
+              "share_percent": 2.5861261935967046
+            },
+            {
+              "category": "S",
+              "count": 1343,
+              "share_percent": 1.571568994570305
+            }
+          ],
+          "card4": [
+            {
+              "category": "visa",
+              "count": 55718,
+              "share_percent": 65.20080509267927
+            },
+            {
+              "category": "mastercard",
+              "count": 28171,
+              "share_percent": 32.9655027148474
+            },
+            {
+              "category": "discover",
+              "count": 841,
+              "share_percent": 0.9841321849840854
+            },
+            {
+              "category": "american express",
+              "count": 722,
+              "share_percent": 0.844879236098109
+            },
+            {
+              "category": "<MISSING>",
+              "count": 4,
+              "share_percent": 0.004680771391125257
+            }
+          ],
+          "card6": [
+            {
+              "category": "debit",
+              "count": 68082,
+              "share_percent": 79.66906946264744
+            },
+            {
+              "category": "credit",
+              "count": 17371,
+              "share_percent": 20.327419958809212
+            },
+            {
+              "category": "<MISSING>",
+              "count": 2,
+              "share_percent": 0.0023403856955626287
+            },
+            {
+              "category": "debit or credit",
+              "count": 1,
+              "share_percent": 0.0011701928477813144
+            }
+          ],
+          "identity_available": [
+            {
+              "category": "False",
+              "count": 71402,
+              "share_percent": 83.5541097172814
+            },
+            {
+              "category": "True",
+              "count": 14054,
+              "share_percent": 16.445890282718594
+            }
+          ],
+          "DeviceType": [
+            {
+              "category": "<MISSING>",
+              "count": 71796,
+              "share_percent": 84.01516569930725
+            },
+            {
+              "category": "desktop",
+              "count": 7854,
+              "share_percent": 9.190694626474443
+            },
+            {
+              "category": "mobile",
+              "count": 5806,
+              "share_percent": 6.794139674218311
+            }
+          ]
+        }
+      }
+    },
+    "high_value_false_negative_examples": [
+      {
+        "TransactionID": 3409708,
+        "TransactionAmt": 5191.0,
+        "fraud_probability": 0.42063567981195654,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3455844,
+        "TransactionAmt": 3822.95,
+        "fraud_probability": 0.24094400798547025,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "credit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3436956,
+        "TransactionAmt": 3260.05,
+        "fraud_probability": 0.07777023708375888,
+        "ProductCD": "W",
+        "card4": "mastercard",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3421871,
+        "TransactionAmt": 3190.0,
+        "fraud_probability": 0.18421985145363343,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3418094,
+        "TransactionAmt": 2963.95,
+        "fraud_probability": 0.16960898131738322,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "credit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3418107,
+        "TransactionAmt": 2963.95,
+        "fraud_probability": 0.17751636557888936,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "credit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3442600,
+        "TransactionAmt": 2681.0,
+        "fraud_probability": 0.1453668908501237,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3455964,
+        "TransactionAmt": 2268.39,
+        "fraud_probability": 0.12429110626863175,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "credit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3488473,
+        "TransactionAmt": 2161.0,
+        "fraud_probability": 0.06270808617252509,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      },
+      {
+        "TransactionID": 3476245,
+        "TransactionAmt": 1795.8,
+        "fraud_probability": 0.023478663819743898,
+        "ProductCD": "W",
+        "card4": "visa",
+        "card6": "debit",
+        "identity_available": false,
+        "DeviceType": null
+      }
+    ],
+    "recall_slices": [
+      {
+        "slice": "ProductCD",
+        "category": "W",
+        "fraud_support": 1485,
+        "true_positives": 0,
+        "false_negatives": 1485,
+        "recall": 0.0
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "500+",
+        "fraud_support": 224,
+        "true_positives": 0,
+        "false_negatives": 224,
+        "recall": 0.0
+      },
+      {
+        "slice": "card4",
+        "category": "discover",
+        "fraud_support": 122,
+        "true_positives": 0,
+        "false_negatives": 122,
+        "recall": 0.0
+      },
+      {
+        "slice": "ProductCD",
+        "category": "S",
+        "fraud_support": 107,
+        "true_positives": 0,
+        "false_negatives": 107,
+        "recall": 0.0
+      },
+      {
+        "slice": "identity_available",
+        "category": "False",
+        "fraud_support": 1524,
+        "true_positives": 5,
+        "false_negatives": 1519,
+        "recall": 0.0032808398950131233
+      },
+      {
+        "slice": "DeviceType",
+        "category": "<MISSING>",
+        "fraud_support": 1553,
+        "true_positives": 7,
+        "false_negatives": 1546,
+        "recall": 0.004507405022537025
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "250\u2013500",
+        "fraud_support": 263,
+        "true_positives": 2,
+        "false_negatives": 261,
+        "recall": 0.0076045627376425855
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "100\u2013250",
+        "fraud_support": 757,
+        "true_positives": 29,
+        "false_negatives": 728,
+        "recall": 0.03830911492734478
+      },
+      {
+        "slice": "ProductCD",
+        "category": "H",
+        "fraud_support": 140,
+        "true_positives": 6,
+        "false_negatives": 134,
+        "recall": 0.04285714285714286
+      },
+      {
+        "slice": "ProductCD",
+        "category": "R",
+        "fraud_support": 160,
+        "true_positives": 7,
+        "false_negatives": 153,
+        "recall": 0.04375
+      },
+      {
+        "slice": "card6",
+        "category": "debit",
+        "fraud_support": 1624,
+        "true_positives": 76,
+        "false_negatives": 1548,
+        "recall": 0.046798029556650245
+      },
+      {
+        "slice": "card4",
+        "category": "visa",
+        "fraud_support": 1984,
+        "true_positives": 129,
+        "false_negatives": 1855,
+        "recall": 0.06502016129032258
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "25\u201350",
+        "fraud_support": 644,
+        "true_positives": 53,
+        "false_negatives": 591,
+        "recall": 0.08229813664596274
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "0\u201325",
+        "fraud_support": 360,
+        "true_positives": 30,
+        "false_negatives": 330,
+        "recall": 0.08333333333333333
+      },
+      {
+        "slice": "card4",
+        "category": "mastercard",
+        "fraud_support": 907,
+        "true_positives": 88,
+        "false_negatives": 819,
+        "recall": 0.0970231532524807
+      },
+      {
+        "slice": "card6",
+        "category": "credit",
+        "fraud_support": 1418,
+        "true_positives": 141,
+        "false_negatives": 1277,
+        "recall": 0.09943582510578279
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "50\u2013100",
+        "fraud_support": 794,
+        "true_positives": 103,
+        "false_negatives": 691,
+        "recall": 0.1297229219143577
+      },
+      {
+        "slice": "identity_available",
+        "category": "True",
+        "fraud_support": 1518,
+        "true_positives": 212,
+        "false_negatives": 1306,
+        "recall": 0.13965744400527008
+      },
+      {
+        "slice": "DeviceType",
+        "category": "desktop",
+        "fraud_support": 849,
+        "true_positives": 119,
+        "false_negatives": 730,
+        "recall": 0.14016489988221437
+      },
+      {
+        "slice": "DeviceType",
+        "category": "mobile",
+        "fraud_support": 640,
+        "true_positives": 91,
+        "false_negatives": 549,
+        "recall": 0.1421875
+      },
+      {
+        "slice": "ProductCD",
+        "category": "C",
+        "fraud_support": 1150,
+        "true_positives": 204,
+        "false_negatives": 946,
+        "recall": 0.17739130434782607
+      }
+    ],
+    "weakest_meaningful_slices": [
+      {
+        "slice": "ProductCD",
+        "category": "W",
+        "fraud_support": 1485,
+        "true_positives": 0,
+        "false_negatives": 1485,
+        "recall": 0.0
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "500+",
+        "fraud_support": 224,
+        "true_positives": 0,
+        "false_negatives": 224,
+        "recall": 0.0
+      },
+      {
+        "slice": "card4",
+        "category": "discover",
+        "fraud_support": 122,
+        "true_positives": 0,
+        "false_negatives": 122,
+        "recall": 0.0
+      },
+      {
+        "slice": "ProductCD",
+        "category": "S",
+        "fraud_support": 107,
+        "true_positives": 0,
+        "false_negatives": 107,
+        "recall": 0.0
+      },
+      {
+        "slice": "identity_available",
+        "category": "False",
+        "fraud_support": 1524,
+        "true_positives": 5,
+        "false_negatives": 1519,
+        "recall": 0.0032808398950131233
+      },
+      {
+        "slice": "DeviceType",
+        "category": "<MISSING>",
+        "fraud_support": 1553,
+        "true_positives": 7,
+        "false_negatives": 1546,
+        "recall": 0.004507405022537025
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "250\u2013500",
+        "fraud_support": 263,
+        "true_positives": 2,
+        "false_negatives": 261,
+        "recall": 0.0076045627376425855
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "100\u2013250",
+        "fraud_support": 757,
+        "true_positives": 29,
+        "false_negatives": 728,
+        "recall": 0.03830911492734478
+      },
+      {
+        "slice": "ProductCD",
+        "category": "H",
+        "fraud_support": 140,
+        "true_positives": 6,
+        "false_negatives": 134,
+        "recall": 0.04285714285714286
+      },
+      {
+        "slice": "ProductCD",
+        "category": "R",
+        "fraud_support": 160,
+        "true_positives": 7,
+        "false_negatives": 153,
+        "recall": 0.04375
+      },
+      {
+        "slice": "card6",
+        "category": "debit",
+        "fraud_support": 1624,
+        "true_positives": 76,
+        "false_negatives": 1548,
+        "recall": 0.046798029556650245
+      },
+      {
+        "slice": "card4",
+        "category": "visa",
+        "fraud_support": 1984,
+        "true_positives": 129,
+        "false_negatives": 1855,
+        "recall": 0.06502016129032258
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "25\u201350",
+        "fraud_support": 644,
+        "true_positives": 53,
+        "false_negatives": 591,
+        "recall": 0.08229813664596274
+      },
+      {
+        "slice": "TransactionAmt_fixed_bucket",
+        "category": "0\u201325",
+        "fraud_support": 360,
+        "true_positives": 30,
+        "false_negatives": 330,
+        "recall": 0.08333333333333333
+      },
+      {
+        "slice": "card4",
+        "category": "mastercard",
+        "fraud_support": 907,
+        "true_positives": 88,
+        "false_negatives": 819,
+        "recall": 0.0970231532524807
+      }
+    ]
+  },
+  "coefficient_summary": {
+    "largest_positive": [
+      {
+        "feature": "categorical__DeviceInfo_hi6210sft Build/MRA58K",
+        "coefficient": 5.897584205821141
+      },
+      {
+        "feature": "categorical__R_emaildomain_protonmail.com",
+        "coefficient": 4.251536057859998
+      },
+      {
+        "feature": "categorical__DeviceInfo_VS5012 Build/NRD90M",
+        "coefficient": 4.2321730502208466
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-N920A Build/MMB29K",
+        "coefficient": 3.745887266895803
+      },
+      {
+        "feature": "categorical__DeviceInfo_KFFOWI Build/LVY48F",
+        "coefficient": 3.688314077939357
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-A510M Build/MMB29K",
+        "coefficient": 3.6397317822070976
+      },
+      {
+        "feature": "categorical__DeviceInfo_Z835 Build/NMF26V",
+        "coefficient": 3.5608033772585115
+      },
+      {
+        "feature": "categorical__DeviceInfo_TA-1039 Build/NMF26F",
+        "coefficient": 3.52246013414924
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-A510M Build/LMY47X",
+        "coefficient": 3.4579254870423233
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-A300H Build/LRX22G",
+        "coefficient": 3.3432339034598155
+      },
+      {
+        "feature": "categorical__DeviceInfo_VS425PP Build/LMY47V",
+        "coefficient": 3.3305255083033516
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-G900M Build/KOT49H",
+        "coefficient": 3.221453355243463
+      },
+      {
+        "feature": "categorical__DeviceInfo_SAMSUNG SM-G891A Build/NRD90M",
+        "coefficient": 3.100429855503603
+      },
+      {
+        "feature": "categorical__DeviceInfo_NOKIA",
+        "coefficient": 3.0587844259764077
+      },
+      {
+        "feature": "categorical__DeviceInfo_TA-1038 Build/NMF26O",
+        "coefficient": 3.0565084188197855
+      },
+      {
+        "feature": "categorical__DeviceInfo_Blade L3 Build/KOT49H",
+        "coefficient": 3.025327306301547
+      },
+      {
+        "feature": "categorical__DeviceInfo_Moto Z2 Play Build/NPSS26.118-19-11",
+        "coefficient": 3.01799978521013
+      },
+      {
+        "feature": "categorical__DeviceInfo_Moto Z2 Play Build/NPS26.74-16-1",
+        "coefficient": 2.982406027042226
+      },
+      {
+        "feature": "categorical__DeviceInfo_Nexus 6 Build/MOB30M",
+        "coefficient": 2.9810265873619333
+      },
+      {
+        "feature": "categorical__DeviceInfo_TA-1039 Build/N2G47H",
+        "coefficient": 2.890789545330498
+      }
+    ],
+    "largest_negative": [
+      {
+        "feature": "categorical__DeviceInfo_SM-G930V Build/NRD90M",
+        "coefficient": -1.8472283316746825
+      },
+      {
+        "feature": "numeric__C4",
+        "coefficient": -1.8083938601469118
+      },
+      {
+        "feature": "categorical__DeviceInfo_LG-D693n Build/LRX22G",
+        "coefficient": -1.7616883115177902
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-A520F Build/NRD90M",
+        "coefficient": -1.7591399982760474
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-G930F Build/NRD90M",
+        "coefficient": -1.6843907529562725
+      },
+      {
+        "feature": "categorical__DeviceInfo_SAMSUNG-SGH-I337 Build/KOT49H",
+        "coefficient": -1.581839709754474
+      },
+      {
+        "feature": "categorical__DeviceInfo_rv:59.0",
+        "coefficient": -1.5685180749617245
+      },
+      {
+        "feature": "categorical__DeviceInfo_PRA-LX3 Build/HUAWEIPRA-LX3",
+        "coefficient": -1.566936664298341
+      },
+      {
+        "feature": "categorical__R_emaildomain_msn.com",
+        "coefficient": -1.503447489400051
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-G935V Build/NRD90M",
+        "coefficient": -1.4667907814276109
+      },
+      {
+        "feature": "categorical__DeviceInfo_SAMSUNG SM-G935F Build/NRD90M",
+        "coefficient": -1.4639506440473402
+      },
+      {
+        "feature": "categorical__DeviceInfo_Moto E (4) Build/NMA26.42-19",
+        "coefficient": -1.4372413524361518
+      },
+      {
+        "feature": "categorical__DeviceInfo_Moto X Play Build/NPD26.48-24-1",
+        "coefficient": -1.4248302682669483
+      },
+      {
+        "feature": "categorical__DeviceInfo_SAMSUNG SM-G531H Build/LMY48B",
+        "coefficient": -1.4170115092295115
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-J710MN Build/MMB29K",
+        "coefficient": -1.3736921304039234
+      },
+      {
+        "feature": "categorical__DeviceInfo_LG-H870 Build/NRD90U",
+        "coefficient": -1.3724678348063413
+      },
+      {
+        "feature": "categorical__DeviceInfo_SM-G900M Build/LRX21T",
+        "coefficient": -1.3678661963468082
+      },
+      {
+        "feature": "categorical__R_emaildomain_bellsouth.net",
+        "coefficient": -1.3658115421916308
+      },
+      {
+        "feature": "categorical__DeviceInfo_Ilium LT510 Build/MRA58K",
+        "coefficient": -1.3619865933534812
+      },
+      {
+        "feature": "categorical__DeviceInfo_Moto G (5) Build/NPP25.137-93",
+        "coefficient": -1.3568711628996128
+      }
+    ]
+  },
+  "reliability": {
+    "mean_predicted_probability": [
+      0.0027686211204764532,
+      0.007328380108952831,
+      0.012188348685614749,
+      0.015636659951523548,
+      0.017636644507956385,
+      0.019843319194500966,
+      0.023870494868142755,
+      0.02980995891969556,
+      0.04514020203551168,
+      0.14673631467700557
+    ],
+    "observed_fraud_fraction": [
+      0.007224291680776611,
+      0.008918491758862045,
+      0.01095055317227365,
+      0.009481882831019302,
+      0.009828009828009828,
+      0.02134215932435517,
+      0.0247289972899729,
+      0.03499266282876171,
+      0.054038808664259926,
+      0.16211025756891098
+    ]
+  },
+  "software_versions": {
+    "python": "3.12.13",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scikit_learn": "1.9.0"
+  },
+  "solver_adjustment": {
+    "initial_solver": "saga",
+    "initial_max_iter": 1000,
+    "issue": "All seven initial fits reached max_iter and emitted ConvergenceWarning; provisional results were discarded.",
+    "action": "Switched once to newton-cholesky with max_iter=100 after a combined-set diagnostic converged in 5 iterations without fit warnings. This solver is appropriate because training rows greatly outnumber the 1,696 encoded combined-set features."
+  },
+  "merchant_facing_metrics_updated": false
+}

@@ -24,6 +24,7 @@ def binary_metrics(labels: np.ndarray, risk_scores: np.ndarray, *, threshold: fl
         raise ValueError("Cannot evaluate an empty dataset")
     predictions = (risk_scores >= threshold).astype(int)
     tn, fp, fn, tp = confusion_matrix(labels, predictions, labels=[0, 1]).ravel()
+    predicted_fraud_count = int(predictions.sum())
     return {
         "threshold": float(threshold),
         "precision": float(precision_score(labels, predictions, zero_division=0)),
@@ -37,4 +38,6 @@ def binary_metrics(labels: np.ndarray, risk_scores: np.ndarray, *, threshold: fl
         "false_positives": int(fp),
         "true_negatives": int(tn),
         "false_negatives": int(fn),
+        "predicted_fraud_count": predicted_fraud_count,
+        "predicted_fraud_rate": float(predicted_fraud_count / len(predictions)),
     }

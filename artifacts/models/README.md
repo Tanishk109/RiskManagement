@@ -1,3 +1,3 @@
 # Model artifacts
 
-Generated `joblib` bundles stay local and are ignored by git. Metadata and a reproducibility manifest are generated only after the real temporal pipeline runs.
+Generated `joblib` and CatBoost `.cbm` bundles stay local and are ignored by git. Their checked-in metadata records reproducible validation configurations without presenting either artifact as a final production model. `validation_operating_config.json` is explicitly provisional, validation-only, and merchant-assumption-dependent.

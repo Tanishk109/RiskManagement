@@ -10,6 +10,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+FORBIDDEN_MODEL_FEATURES = frozenset({"TransactionID", "isFraud", "actual_label"})
+
 
 def load_feature_sets(path: str | Path) -> dict[str, list[str]]:
     payload = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
@@ -24,11 +26,14 @@ def load_feature_sets(path: str | Path) -> dict[str, list[str]]:
     return normalized
 
 
-def validate_feature_schema(frame: pd.DataFrame, features: list[str]) -> None:
-    forbidden = {"isFraud", "actual_label"}
-    leaked = sorted(forbidden.intersection(features))
+def validate_model_features(features: list[str]) -> None:
+    leaked = sorted(FORBIDDEN_MODEL_FEATURES.intersection(features))
     if leaked:
-        raise ValueError(f"Feature set contains label columns: {', '.join(leaked)}")
+        raise ValueError(f"Feature set contains forbidden model fields: {', '.join(leaked)}")
+
+
+def validate_feature_schema(frame: pd.DataFrame, features: list[str]) -> None:
+    validate_model_features(features)
     missing = sorted(set(features).difference(frame.columns))
     if missing:
         raise ValueError(f"Feature set columns missing from data: {', '.join(missing)}")
@@ -48,7 +53,7 @@ def build_preprocessor(frame: pd.DataFrame, features: list[str], *, scale_numeri
         numeric_steps.append(("scale", StandardScaler()))
     numeric_pipeline = Pipeline(numeric_steps)
     categorical_pipeline = Pipeline([
-        ("impute", SimpleImputer(strategy="most_frequent")),
+        ("impute", SimpleImputer(strategy="constant", fill_value="__MISSING__")),
         ("encode", OneHotEncoder(handle_unknown="ignore", sparse_output=True)),
     ])
     return ColumnTransformer([

@@ -15,4 +15,4 @@ Confirm that the UI says either “Held-out results loaded” with a real final 
 
 ## Current checkout
 
-The real dataset is absent. Demonstrate the honest empty-state behavior, threshold invariant, API validation, and persistence tests; do not quote precision, recall, cost, savings, or latency.
+The real dataset has passed local validation and EDA and has chronological train/validation/test partitions, but no model or held-out performance evaluation exists. Demonstrate the honest empty-state behavior, threshold invariant, API validation, and persistence tests; do not quote precision, recall, cost, savings, or latency.

@@ -1,0 +1,77 @@
+assumption_status: ILLUSTRATIVE MERCHANT ASSUMPTIONS
+cost_output_label: ESTIMATED BUSINESS COST UNDER USER-SUPPLIED ASSUMPTIONS
+
+scenarios:
+  low_margin_low_review_cost:
+    name: Scenario A — Low-margin / low-review-cost merchant
+    description: Hypothetical merchant with low contribution margin and inexpensive manual review.
+    assumptions:
+      currency: INR
+      fraud_loss_fraction: 0.60
+      chargeback_fixed_cost: 0.0
+      legitimate_margin_rate: 0.08
+      false_positive_fixed_cost: 5.0
+      manual_review_cost: 10.0
+      review_fraud_catch_rate: 0.80
+      review_legitimate_approval_rate: 0.97
+  moderate:
+    name: Scenario B — Moderate merchant
+    description: Hypothetical middle case used for the provisional development operating point.
+    assumptions:
+      currency: INR
+      fraud_loss_fraction: 0.85
+      chargeback_fixed_cost: 50.0
+      legitimate_margin_rate: 0.18
+      false_positive_fixed_cost: 20.0
+      manual_review_cost: 25.0
+      review_fraud_catch_rate: 0.90
+      review_legitimate_approval_rate: 0.98
+  high_margin_high_fraud_cost:
+    name: Scenario C — High-margin / high-fraud-cost merchant
+    description: Hypothetical merchant with higher contribution margin, friction cost, and fraud exposure.
+    assumptions:
+      currency: INR
+      fraud_loss_fraction: 1.00
+      chargeback_fixed_cost: 150.0
+      legitimate_margin_rate: 0.30
+      false_positive_fixed_cost: 50.0
+      manual_review_cost: 60.0
+      review_fraud_catch_rate: 0.92
+      review_legitimate_approval_rate: 0.97
+
+threshold_grid:
+  review_start: 0.05
+  review_stop: 0.80
+  block_start: 0.10
+  block_stop: 0.95
+  step: 0.025
+  minimum_gap: 0.025
+
+review_capacity_rates:
+  - null
+  - 0.01
+  - 0.02
+  - 0.05
+
+frontier:
+  minimum_detected_fraud_recall: 0.50
+
+provisional_selection:
+  scenario: moderate
+  max_review_rate: 0.02
+  objective: lowest estimated cost feasible under a 2% review-capacity limit
+
+sensitivity:
+  base_scenario: moderate
+  fraud_loss_fraction:
+    - 0.60
+    - 0.85
+    - 1.00
+  legitimate_margin_rate:
+    - 0.08
+    - 0.18
+    - 0.30
+  manual_review_cost:
+    - 10.0
+    - 25.0
+    - 60.0

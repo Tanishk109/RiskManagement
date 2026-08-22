@@ -88,7 +88,7 @@ class ReviewDecisionRequest(BaseModel):
 
 class CostAssumptions(BaseModel):
     currency: str = Field(default="INR", min_length=3, max_length=3)
-    fraud_loss_fraction: float = Field(default=1.0, ge=0, le=2)
+    fraud_loss_fraction: float = Field(default=1.0, ge=0, le=1)
     chargeback_fixed_cost: float = Field(default=0, ge=0)
     legitimate_margin_rate: float = Field(default=0.2, ge=0, le=1)
     false_positive_fixed_cost: float = Field(default=0, ge=0)

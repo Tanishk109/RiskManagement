@@ -71,3 +71,138 @@ export type BootstrapResponse = {
   rules: { active_count: number; evidence_status: string };
   provenance: string;
 };
+
+export type ProjectStatusResponse = {
+  dataset: {
+    status: string;
+    name: string;
+    transactions: number;
+    fraud_transactions: number;
+    legitimate_transactions: number;
+    fraud_prevalence: number;
+    identity_rows: number;
+    identity_coverage: number;
+  };
+  split: {
+    status: string;
+    strategy: string;
+    train_rows: number;
+    validation_rows: number;
+    test_rows: number;
+    train_fraction: number;
+    validation_fraction: number;
+    test_fraction: number;
+    train_transaction_dt_min: number;
+    train_transaction_dt_max: number;
+    validation_transaction_dt_min: number;
+    validation_transaction_dt_max: number;
+    test_transaction_dt_min: number;
+    test_transaction_dt_max: number;
+    test_status: string;
+  };
+  baseline: { status: string; experiment_id: string };
+  candidate_model: { status: string; name: string; experiment_id: string };
+  threshold_analysis: { status: string };
+  rules: { status: string };
+  operational_thresholds: { status: string };
+  final_test: { status: string; test_status: string };
+};
+
+export type ValidationMetrics = {
+  average_precision: number;
+  roc_auc: number;
+  precision_at_0_5: number;
+  recall_at_0_5: number;
+  f1_at_0_5: number;
+  false_positives: number;
+  false_negatives: number;
+  true_positives: number;
+  true_negatives: number;
+  threshold: number;
+};
+
+export type ModelComparisonResponse = {
+  status: string;
+  split: "validation";
+  held_out_test_status: "sealed";
+  threshold: number;
+  logistic_regression: { name: string; experiment_id: string; metrics: ValidationMetrics };
+  catboost: { name: string; experiment_id: string; metrics: ValidationMetrics };
+  average_precision_relative_improvement: number;
+  candidate_details: {
+    status: string;
+    feature_count: number;
+    identity_fields_included: boolean;
+    class_weight: string;
+    identity_ap_loss: number;
+    selection_reason: string;
+  };
+  failure_analysis: {
+    label: string;
+    slices: Array<{
+      slice: string;
+      fraud_support: number;
+      logistic_recall: number;
+      catboost_recall: number;
+      absolute_improvement: number;
+    }>;
+    false_negatives: {
+      count: number;
+      transaction_amount_total: number;
+      transaction_amount_max: number;
+    };
+  };
+  precision_recall_curves: Array<{
+    model: string;
+    points: Array<{ recall: number; precision: number }>;
+  }>;
+  provenance: string;
+};
+
+export type FeatureImportanceResponse = {
+  status: string;
+  model: string;
+  items: Array<{ feature: string; importance: number }>;
+  note: string;
+};
+
+export type ValidationFilter =
+  | "all"
+  | "true_fraud"
+  | "true_legitimate"
+  | "true_positive"
+  | "false_positive"
+  | "false_negative"
+  | "true_negative"
+  | "high_risk"
+  | "high_value";
+
+export type ValidationTransaction = {
+  transaction_id: string;
+  transaction_dt: number;
+  transaction_amount: number;
+  actual_label: 0 | 1;
+  fraud_probability: number;
+  predicted_label_at_0_5: 0 | 1;
+  outcome: "TRUE_POSITIVE" | "FALSE_POSITIVE" | "FALSE_NEGATIVE" | "TRUE_NEGATIVE";
+  model_error: boolean;
+  features: Record<string, string | number | null>;
+};
+
+export type ValidationTransactionPage = {
+  status: string;
+  split: "validation";
+  threshold: number;
+  filter: ValidationFilter;
+  page: number;
+  page_size: number;
+  total: number;
+  page_count: number;
+  items: ValidationTransaction[];
+};
+
+export type InterestingCasesResponse = {
+  status: string;
+  split: "validation";
+  cases: Array<ValidationTransaction & { case_type: string }>;
+};

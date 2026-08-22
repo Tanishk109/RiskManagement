@@ -7,16 +7,22 @@ from typing import Any
 import yaml
 from merchantshield_ml.cost import CostAssumptions
 from merchantshield_ml.features import load_feature_sets
-from merchantshield_ml.processed import load_processed_splits
+from merchantshield_ml.processed import (
+    BaselinePartitions,
+    load_baseline_partitions,
+    load_processed_splits,
+)
 from merchantshield_ml.split import TemporalSplits
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DATA = ROOT / "data/raw"
-PROCESSED_DATA = ROOT / "data/processed"
+IEEE_CIS_RAW_DATA = RAW_DATA / "ieee-cis"
+PROCESSED_DATA = ROOT / "data/processed/ieee-cis"
 ARTIFACTS = ROOT / "artifacts"
 FEATURE_CONFIG = ROOT / "ml/configs/feature_sets.yaml"
 TRAINING_CONFIG = ROOT / "ml/configs/training.yaml"
 COST_CONFIG = ROOT / "ml/configs/cost_assumptions.yaml"
+MERCHANT_SCENARIO_CONFIG = ROOT / "ml/configs/merchant_scenarios.yaml"
 
 
 def read_yaml(path: Path) -> dict[str, Any]:
@@ -38,8 +44,16 @@ def cost_assumptions() -> CostAssumptions:
     return CostAssumptions(**read_yaml(COST_CONFIG))
 
 
+def merchant_scenario_config() -> dict[str, Any]:
+    return read_yaml(MERCHANT_SCENARIO_CONFIG)
+
+
 def load_splits(features: list[str]) -> TemporalSplits:
     return load_processed_splits(PROCESSED_DATA, features)
+
+
+def load_baseline_data(features: list[str]) -> BaselinePartitions:
+    return load_baseline_partitions(PROCESSED_DATA, features)
 
 
 def replace_marked_section(path: Path, marker: str, body: str) -> None:
@@ -47,7 +61,12 @@ def replace_marked_section(path: Path, marker: str, body: str) -> None:
     end = f"<!-- {marker}:END -->"
     content = path.read_text(encoding="utf-8")
     replacement = f"{start}\n{body.rstrip()}\n{end}"
-    updated, count = re.subn(re.escape(start) + r".*?" + re.escape(end), replacement, content, flags=re.DOTALL)
+    updated, count = re.subn(
+        re.escape(start) + r".*?" + re.escape(end),
+        replacement,
+        content,
+        flags=re.DOTALL,
+    )
     if count != 1:
         raise ValueError(f"Expected one {marker} marker pair in {path}")
     path.write_text(updated, encoding="utf-8")

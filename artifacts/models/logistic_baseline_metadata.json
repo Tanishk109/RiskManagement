@@ -1,0 +1,61 @@
+{
+  "status": "validation_baseline",
+  "model_name": "Logistic Regression",
+  "model_version": "logistic-baseline-v1",
+  "trained_at": "2026-08-22T04:24:13.857207+00:00",
+  "feature_set": "baseline_conservative_combined",
+  "feature_names": [
+    "TransactionAmt",
+    "ProductCD",
+    "card4",
+    "card6",
+    "P_emaildomain",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "D1",
+    "D2",
+    "D3",
+    "identity_available",
+    "DeviceType",
+    "DeviceInfo",
+    "R_emaildomain"
+  ],
+  "encoded_feature_count": 1696,
+  "class_weight": "none",
+  "solver": "newton-cholesky",
+  "max_iter": 100,
+  "converged": true,
+  "training_split": "train",
+  "training_rows": 413378,
+  "validation_split": "validation",
+  "validation_rows": 88581,
+  "held_out_test_accessed": false,
+  "default_evaluation_threshold": 0.5,
+  "validation_metrics": {
+    "precision": 0.7233333333333334,
+    "recall": 0.07133464825772518,
+    "f1": 0.1298623578695392,
+    "average_precision": 0.23143384660363925,
+    "roc_auc": 0.7934804128969273,
+    "tp": 217,
+    "fp": 83,
+    "tn": 85456,
+    "fn": 2825,
+    "brier_score": 0.029639545911918738
+  },
+  "software_versions": {
+    "python": "3.12.13",
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "scikit_learn": "1.9.0"
+  },
+  "solver_adjustment": {
+    "initial_solver": "saga",
+    "initial_max_iter": 1000,
+    "issue": "All seven initial fits reached max_iter and emitted ConvergenceWarning; provisional results were discarded.",
+    "action": "Switched once to newton-cholesky with max_iter=100 after a combined-set diagnostic converged in 5 iterations without fit warnings. This solver is appropriate because training rows greatly outnumber the 1,696 encoded combined-set features."
+  }
+}

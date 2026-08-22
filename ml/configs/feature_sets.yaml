@@ -1,4 +1,78 @@
 feature_sets:
+  baseline_core:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+  baseline_core_time:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - TransactionDT
+  baseline_core_masked:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+    - D1
+    - D2
+    - D3
+  baseline_core_identity:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - identity_available
+    - DeviceType
+    - DeviceInfo
+    - R_emaildomain
+  baseline_conservative_combined:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+    - D1
+    - D2
+    - D3
+    - identity_available
+    - DeviceType
+    - DeviceInfo
+    - R_emaildomain
+  baseline_conservative_combined_time:
+    - TransactionAmt
+    - ProductCD
+    - card4
+    - card6
+    - P_emaildomain
+    - C1
+    - C2
+    - C3
+    - C4
+    - C5
+    - D1
+    - D2
+    - D3
+    - identity_available
+    - DeviceType
+    - DeviceInfo
+    - R_emaildomain
+    - TransactionDT
   baseline_numeric:
     - TransactionAmt
     - TransactionDT

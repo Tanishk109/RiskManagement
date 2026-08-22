@@ -3,7 +3,7 @@ PIP ?= .venv/bin/pip
 PYTHON_BOOTSTRAP ?= python3
 PYTHONPATH := ml/src:services/api
 
-.PHONY: install setup db-up db-migrate db-check db-sync data-check prepare-data eda train-baseline train-primary error-analysis evaluate benchmark seed-demo api web test lint typecheck docker-up
+.PHONY: install setup db-up db-migrate db-check db-sync data-check prepare-data eda train-baseline train-catboost train-primary threshold-analysis error-analysis evaluate benchmark seed-demo api web test lint typecheck docker-up
 
 install: setup
 
@@ -38,8 +38,13 @@ eda:
 train-baseline:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/train_baseline.py
 
-train-primary:
-	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/train_primary.py
+train-catboost:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/train_catboost.py
+
+train-primary: train-catboost
+
+threshold-analysis:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/analyze_thresholds.py
 
 error-analysis:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/error_analysis.py

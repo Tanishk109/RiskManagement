@@ -20,12 +20,13 @@ test("server-renders the honest four-module MerchantShield surface", async () =>
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /MerchantShield/);
-  assert.match(html, /Evidence before automation/);
+  assert.match(html, /Cost-Aware Fraud/);
+  assert.match(html, /Loading project evidence/);
   assert.match(html, /Overview/);
   assert.match(html, /Transactions/);
   assert.match(html, /Review Queue/);
   assert.match(html, /Cost Lab/);
-  assert.match(html, /Not evaluated yet/);
+  assert.match(html, /Held-out test sealed/);
   assert.doesNotMatch(html, /Abuse ring sentinel|Fraud pulse|AI analyst|Live transactions|₹5\.80L|Fraud-XGB-v3\.2/);
 });
 
@@ -70,5 +71,23 @@ test("score adapter refuses to substitute a handcrafted model", async () => {
 test("frontend source contains no former fabricated evaluation constants", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(page, /HELD_OUT_RESULTS|metricsFor\(|82,491|Fraud-XGB-v3\.2|₹5\.80L/);
+  assert.doesNotMatch(page, /0\.426003|0\.231434|590,?540|20,?663|378,?333\.733/);
   assert.match(page, /Not evaluated yet/);
+});
+
+test("frontend clearly separates validation evidence from final results", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /VALIDATION RESULTS/);
+  assert.match(page, /Not final held-out performance/);
+  assert.match(page, /FINAL HELD-OUT EVALUATION/);
+  assert.match(page, /Held-out test remains sealed/);
+  assert.match(page, /Not evaluated yet/);
+});
+
+test("locked product surfaces contain no fake cases or monetary claims", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /No fake review cases are shown/);
+  assert.match(page, /No monetary result shown/);
+  assert.match(page, /No rupee estimate is displayed here/);
+  assert.doesNotMatch(page, /₹|reviewCases|estimatedSavings|moneySaved/);
 });

@@ -1,36 +1,51 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowRight,
-  BadgeCheck,
   BarChart3,
-  BookOpen,
   Check,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
+  Clock3,
   Database,
-  FileCheck2,
   FileWarning,
   Filter,
   FlaskConical,
-  Gauge,
   Info,
+  Layers3,
   ListChecks,
+  LockKeyhole,
   Menu,
-  ReceiptIndianRupee,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   TableProperties,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type {
-  BootstrapResponse,
-  CostAssumptions,
-  CostSimulationResponse,
-  Decision,
-  TransactionSummary,
+  FeatureImportanceResponse,
+  InterestingCasesResponse,
+  ModelComparisonResponse,
+  ProjectStatusResponse,
+  ValidationFilter,
+  ValidationTransaction,
+  ValidationTransactionPage,
 } from "../lib/api-types";
 
 type Section = "overview" | "transactions" | "reviews" | "cost";
@@ -42,15 +57,23 @@ const sections: Array<{ id: Section; label: string; icon: typeof BarChart3 }> = 
   { id: "cost", label: "Cost Lab", icon: SlidersHorizontal },
 ];
 
-const defaultAssumptions: CostAssumptions = {
-  currency: "INR",
-  fraud_loss_fraction: 1,
-  chargeback_fixed_cost: 0,
-  legitimate_margin_rate: 0.2,
-  false_positive_fixed_cost: 0,
-  manual_review_cost: 150,
-  review_fraud_catch_rate: 0.9,
-  review_legitimate_approval_rate: 0.98,
+const validationFilters: Array<{ id: ValidationFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "true_fraud", label: "True Fraud" },
+  { id: "true_legitimate", label: "True Legitimate" },
+  { id: "true_positive", label: "True Positive" },
+  { id: "false_positive", label: "False Positive" },
+  { id: "false_negative", label: "False Negative" },
+  { id: "true_negative", label: "True Negative" },
+  { id: "high_risk", label: "High Risk" },
+  { id: "high_value", label: "High Value" },
+];
+
+const interestingLabels: Record<string, string> = {
+  highest_value_false_negative: "Highest-value false negative",
+  highest_confidence_false_positive: "Highest-confidence false positive",
+  highest_confidence_true_fraud: "Highest-confidence true fraud",
+  highest_confidence_legitimate: "Highest-confidence legitimate",
 };
 
 const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
@@ -59,86 +82,98 @@ function apiPath(path: string) {
   return `${apiBase}${path}`;
 }
 
-const blankBootstrap: BootstrapResponse = {
-  status: "loading",
-  evaluated: false,
-  generated_at: null,
-  dataset: {
-    name: "IEEE-CIS Fraud Detection",
-    available: false,
-    validation_status: "Not evaluated yet",
-  },
-  model: {
-    available: false,
-    name: null,
-    version: null,
-    trained_at: null,
-    feature_set: null,
-  },
-  metrics: null,
-  decision_distribution: null,
-  confusion_matrix: null,
-  transactions: [],
-  reviews: [],
-  rules: {
-    active_count: 0,
-    evidence_status: "Awaiting validation error analysis",
-  },
-  provenance: "Not evaluated yet",
-};
-
-function formatMetric(value: number | null | undefined, kind: "number" | "percent" | "currency" = "number") {
-  if (value === null || value === undefined) return "Not evaluated yet";
-  if (kind === "percent") return `${(value * 100).toFixed(1)}%`;
-  if (kind === "currency") {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(value);
+async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(apiPath(path), { signal });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
+    throw new Error(payload?.detail ?? `Evidence API returned ${response.status}`);
   }
-  return new Intl.NumberFormat("en-IN").format(value);
+  return response.json() as Promise<T>;
 }
 
-function decisionClass(value: string) {
-  return value.toLowerCase().replaceAll("_", "-");
+function formatNumber(value: number, maximumFractionDigits = 0) {
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits }).format(value);
 }
 
-function MetricCard({ label, value, note, icon: Icon }: { label: string; value: string; note: string; icon: typeof Gauge }) {
-  const unavailable = value === "Not evaluated yet";
+function formatPercent(value: number, digits = 2) {
+  return `${(value * 100).toFixed(digits)}%`;
+}
+
+function formatAmount(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function labelOutcome(outcome: ValidationTransaction["outcome"]) {
+  return outcome.replaceAll("_", " ");
+}
+
+function MetricCard({
+  label,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof Database;
+}) {
   return (
-    <article className={`metric-card ${unavailable ? "unavailable" : ""}`}>
-      <div className="metric-card-top"><span>{label}</span><Icon size={17} /></div>
+    <article className="metric-card">
+      <div className="metric-icon"><Icon size={18} /></div>
+      <span>{label}</span>
       <strong>{value}</strong>
-      <small><Info size={12} /> {note}</small>
+      <small>{detail}</small>
     </article>
   );
 }
 
-function EmptyEvidence({ title, detail, action }: { title: string; detail: string; action?: React.ReactNode }) {
+function LockedValue({ label }: { label: string }) {
+  return <div className="locked-value"><span>{label}</span><strong>Not evaluated yet</strong></div>;
+}
+
+function LoadingOverview() {
   return (
-    <div className="empty-evidence">
-      <div className="empty-icon"><FileWarning size={22} /></div>
-      <h3>{title}</h3>
-      <p>{detail}</p>
-      {action}
+    <div className="loading-grid" aria-label="Loading project evidence">
+      {[0, 1, 2, 3].map((item) => <span key={item} />)}
     </div>
   );
 }
 
-function TransactionTable({ rows, onSelect }: { rows: TransactionSummary[]; onSelect: (row: TransactionSummary) => void }) {
+function EvidenceError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="error-state" role="alert">
+      <FileWarning size={20} />
+      <div><strong>Project evidence is unavailable</strong><span>{message}</span></div>
+      <button onClick={onRetry}>Retry</button>
+    </div>
+  );
+}
+
+function TransactionTable({
+  rows,
+  threshold,
+  onSelect,
+}: {
+  rows: ValidationTransaction[];
+  threshold: number;
+  onSelect: (row: ValidationTransaction) => void;
+}) {
   return (
     <div className="table-shell">
-      <div className="tx-row tx-head">
-        <span>Transaction ID</span><span>Amount</span><span>Risk</span><span>Decision</span><span>Actual label</span><span />
+      <div className="transaction-row transaction-head">
+        <span>Transaction</span><span>TransactionAmt</span><span>Fraud probability</span><span>Prediction @{threshold.toFixed(2)}</span><span>Actual label</span><span>Outcome</span><span />
       </div>
       {rows.map((row) => (
-        <button className="tx-row" key={row.transaction_id} onClick={() => onSelect(row)}>
+        <button className="transaction-row" key={row.transaction_id} onClick={() => onSelect(row)}>
           <strong>{row.transaction_id}</strong>
-          <span>{new Intl.NumberFormat("en-IN", { style: "currency", currency: row.currency, maximumFractionDigits: 0 }).format(row.amount)}</span>
-          <span>{(row.risk_score * 100).toFixed(1)}%</span>
-          <span><i className={`decision-dot ${decisionClass(row.decision)}`} />{row.decision}</span>
-          <span>{row.actual_label === 1 ? "Fraud" : "Legitimate"}</span>
+          <span>{formatAmount(row.transaction_amount)}</span>
+          <span className="risk-value">{formatPercent(row.fraud_probability)}</span>
+          <span>{row.predicted_label_at_0_5 ? "Fraud" : "Legitimate"}</span>
+          <span>{row.actual_label ? "Fraud" : "Legitimate"}</span>
+          <span><i className={`outcome-dot ${row.outcome.toLowerCase()}`} />{labelOutcome(row.outcome)}</span>
           <ArrowRight size={15} />
         </button>
       ))}
@@ -149,270 +184,381 @@ function TransactionTable({ rows, onSelect }: { rows: TransactionSummary[]; onSe
 export default function Home() {
   const [active, setActive] = useState<Section>("overview");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [data, setData] = useState<BootstrapResponse>(blankBootstrap);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [status, setStatus] = useState<ProjectStatusResponse | null>(null);
+  const [comparison, setComparison] = useState<ModelComparisonResponse | null>(null);
+  const [importance, setImportance] = useState<FeatureImportanceResponse | null>(null);
+  const [interesting, setInteresting] = useState<InterestingCasesResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [transactions, setTransactions] = useState<ValidationTransactionPage | null>(null);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionError, setTransactionError] = useState<string | null>(null);
+  const [transactionReloadKey, setTransactionReloadKey] = useState(0);
+  const [filter, setFilter] = useState<ValidationFilter>("all");
   const [search, setSearch] = useState("");
-  const [decision, setDecision] = useState<"ALL" | Decision>("ALL");
-  const [selected, setSelected] = useState<TransactionSummary | null>(null);
-  const [reviewThreshold, setReviewThreshold] = useState(0.4);
-  const [blockThreshold, setBlockThreshold] = useState(0.8);
-  const [assumptions, setAssumptions] = useState(defaultAssumptions);
-  const [simulation, setSimulation] = useState<CostSimulationResponse | null>(null);
-  const [simulating, setSimulating] = useState(false);
-  const [selectedReview, setSelectedReview] = useState<BootstrapResponse["reviews"][number] | null>(null);
-  const [reviewNote, setReviewNote] = useState("");
-  const [reviewSaving, setReviewSaving] = useState(false);
-  const [reviewMessage, setReviewMessage] = useState("");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<ValidationTransaction | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(apiPath("/api/v1/bootstrap"), { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Dashboard API returned ${response.status}`);
-        return response.json() as Promise<BootstrapResponse>;
+    Promise.all([
+      fetchJson<ProjectStatusResponse>("/api/v1/project/status", controller.signal),
+      fetchJson<ModelComparisonResponse>("/api/v1/model-comparison", controller.signal),
+      fetchJson<FeatureImportanceResponse>("/api/v1/model/feature-importance?limit=13", controller.signal),
+      fetchJson<InterestingCasesResponse>("/api/v1/validation/interesting-cases", controller.signal),
+    ])
+      .then(([nextStatus, nextComparison, nextImportance, nextInteresting]) => {
+        setStatus(nextStatus);
+        setComparison(nextComparison);
+        setImportance(nextImportance);
+        setInteresting(nextInteresting);
       })
-      .then(setData)
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setData({ ...blankBootstrap, status: "unavailable" });
-        setLoadError(error instanceof Error ? error.message : "Dashboard API unavailable");
-      });
+      .catch((caught: unknown) => {
+        if (caught instanceof DOMException && caught.name === "AbortError") return;
+        setError(caught instanceof Error ? caught.message : "Project evidence could not be loaded");
+      })
+      .finally(() => setLoading(false));
     return () => controller.abort();
-  }, []);
+  }, [reloadKey]);
 
   useEffect(() => {
+    if (active !== "transactions") return;
     const controller = new AbortController();
-    const handle = window.setTimeout(async () => {
-      setSimulating(true);
-      try {
-        const response = await fetch(apiPath("/api/v1/cost/simulate"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({ review_threshold: reviewThreshold, block_threshold: blockThreshold, assumptions }),
-        });
-        const payload = await response.json() as CostSimulationResponse & { error?: string };
-        if (!response.ok) throw new Error(payload.error ?? `Cost API returned ${response.status}`);
-        setSimulation(payload);
-      } catch (error: unknown) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setSimulation({ evaluated: false, provenance: error instanceof Error ? error.message : "Cost API unavailable", current: null, proposed: null });
-        }
-      } finally {
-        setSimulating(false);
-      }
-    }, 180);
-    return () => { controller.abort(); window.clearTimeout(handle); };
-  }, [reviewThreshold, blockThreshold, assumptions]);
-
-  const filteredTransactions = useMemo(() => data.transactions.filter((row) => {
-    const matchesQuery = row.transaction_id.toLowerCase().includes(search.toLowerCase());
-    return matchesQuery && (decision === "ALL" || row.decision === decision);
-  }), [data.transactions, decision, search]);
-
-  const metrics = data.metrics;
-  const provenance = data.evaluated
-    ? data.provenance
-    : "Awaiting final held-out temporal evaluation on local IEEE-CIS labels.";
-
-  function updateReviewThreshold(next: number) {
-    setReviewThreshold(Math.min(next, blockThreshold - 0.01));
-  }
-
-  function updateBlockThreshold(next: number) {
-    setBlockThreshold(Math.max(next, reviewThreshold + 0.01));
-  }
-
-  async function submitReview(reviewerDecision: "APPROVE" | "DECLINE") {
-    if (!selectedReview || reviewNote.trim().length < 3) {
-      setReviewMessage("Add a reviewer note with at least 3 characters.");
-      return;
-    }
-    setReviewSaving(true);
-    setReviewMessage("");
-    try {
-      const response = await fetch(apiPath(`/api/v1/reviews/${selectedReview.id}/decision`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision: reviewerDecision, reason: reviewNote.trim() }),
+    const handle = window.setTimeout(() => {
+      setTransactionsLoading(true);
+      setTransactionError(null);
+      const parameters = new URLSearchParams({
+        page: String(page),
+        page_size: "25",
+        filter,
       });
-      const payload = await response.json() as { detail?: string };
-      if (!response.ok) throw new Error(payload.detail ?? `Review API returned ${response.status}`);
-      setData((current) => ({ ...current, reviews: current.reviews.filter((review) => review.id !== selectedReview.id) }));
-      setSelectedReview(null);
-      setReviewNote("");
-    } catch (error: unknown) {
-      setReviewMessage(error instanceof Error ? error.message : "Review submission failed");
-    } finally {
-      setReviewSaving(false);
-    }
+      if (search.trim()) parameters.set("search", search.trim());
+      fetchJson<ValidationTransactionPage>(
+        `/api/v1/validation/transactions?${parameters}`,
+        controller.signal,
+      )
+        .then(setTransactions)
+        .catch((caught: unknown) => {
+          if (caught instanceof DOMException && caught.name === "AbortError") return;
+          setTransactionError(caught instanceof Error ? caught.message : "Transactions could not be loaded");
+        })
+        .finally(() => setTransactionsLoading(false));
+    }, 180);
+    return () => {
+      controller.abort();
+      window.clearTimeout(handle);
+    };
+  }, [active, filter, page, search, transactionReloadKey]);
+
+  const performanceData = useMemo(() => {
+    if (!comparison) return [];
+    const logistic = comparison.logistic_regression.metrics;
+    const catboost = comparison.catboost.metrics;
+    return [
+      { metric: "Avg precision", logistic: logistic.average_precision, catboost: catboost.average_precision },
+      { metric: "Recall", logistic: logistic.recall_at_0_5, catboost: catboost.recall_at_0_5 },
+      { metric: "F1", logistic: logistic.f1_at_0_5, catboost: catboost.f1_at_0_5 },
+    ];
+  }, [comparison]);
+
+  const curveData = useMemo(() => {
+    if (!comparison) return [];
+    const logistic = comparison.precision_recall_curves.find((series) => series.model.includes("Logistic"));
+    const catboost = comparison.precision_recall_curves.find((series) => series.model.includes("CatBoost"));
+    if (!logistic || !catboost) return [];
+    return catboost.points.map((point, index) => ({
+      recall: point.recall,
+      catboost: point.precision,
+      logistic: logistic.points[index]?.precision ?? null,
+    }));
+  }, [comparison]);
+
+  function changeFilter(next: ValidationFilter) {
+    setFilter(next);
+    setPage(1);
   }
+
+  function reloadEvidence() {
+    setLoading(true);
+    setError(null);
+    setReloadKey((value) => value + 1);
+  }
+
+  const activeLabel = sections.find((section) => section.id === active)?.label;
+  const evidenceLabel = status
+    ? "Validation candidate ready"
+    : loading
+      ? "Loading project evidence"
+      : "Project evidence unavailable";
+  const candidateDescription = comparison
+    ? `${comparison.catboost.name} · ${comparison.candidate_details.feature_count} features`
+    : "Artifact-backed project state";
+  const thresholdAnalysisReady = status?.threshold_analysis.status === "validation_analysis_ready";
 
   return (
     <div className="app-shell">
       <aside className={`sidebar ${mobileOpen ? "open" : ""}`}>
         <div className="brand-row">
           <div className="brand-mark"><ShieldCheck size={21} /></div>
-          <div><strong>MerchantShield</strong><span>Risk decision engine</span></div>
+          <div><strong>MerchantShield</strong><span>Cost-aware fraud decisions</span></div>
           <button className="icon-button close-nav" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X size={18} /></button>
         </div>
 
-        <div className={`evidence-badge ${data.evaluated ? "ready" : "pending"}`}>
-          {data.evaluated ? <FileCheck2 size={16} /> : <Database size={16} />}
-          <div><strong>{data.evaluated ? "Evidence ready" : "Evaluation pending"}</strong><span>{data.dataset.name}</span></div>
+        <div className="candidate-badge">
+          <span className="candidate-dot" />
+          <div><strong>{evidenceLabel}</strong><small>Held-out test sealed</small></div>
         </div>
 
-        <nav aria-label="Product modules">
-          <span className="nav-label">Decision workflow</span>
-          {sections.map((item) => {
-            const Icon = item.icon;
+        <nav aria-label="MerchantShield modules">
+          <span className="nav-label">Project evidence</span>
+          {sections.map((section) => {
+            const Icon = section.icon;
             return (
-              <button key={item.id} className={active === item.id ? "active" : ""} onClick={() => { setActive(item.id); setMobileOpen(false); }}>
-                <Icon size={17} /><span>{item.label}</span>
+              <button
+                key={section.id}
+                className={active === section.id ? "active" : ""}
+                onClick={() => { setActive(section.id); setMobileOpen(false); }}
+              >
+                <Icon size={17} /><span>{section.label}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="sidebar-note">
-          <BadgeCheck size={16} />
-          <div><strong>Defense-only</strong><span>No attack generation, fake live feed, or hidden model claims.</span></div>
-        </div>
+        <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>Defense-only evidence</strong><span>Validation is visible. Final performance stays locked until the single held-out evaluation.</span></div></div>
       </aside>
-      {mobileOpen && <button className="nav-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && <button className="nav-scrim" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
 
       <main className="main-area">
         <header className="topbar">
           <button className="icon-button menu-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu size={19} /></button>
-          <div className="crumb"><span>Merchant risk</span><ArrowRight size={13} /><strong>{sections.find((item) => item.id === active)?.label}</strong></div>
-          <div className={`status-pill ${data.evaluated ? "ready" : "pending"}`}><span />{data.evaluated ? "Held-out results loaded" : "Not evaluated yet"}</div>
+          <div className="breadcrumb"><span>MerchantShield</span><ArrowRight size={12} /><strong>{activeLabel}</strong></div>
+          <div className="top-status"><span />{evidenceLabel.toUpperCase()}</div>
         </header>
 
         <div className="page-content">
-          {loadError && <div className="api-alert"><FileWarning size={16} /><span><strong>API unavailable.</strong> {loadError}</span></div>}
-
           {active === "overview" && (
-            <section className="module-page">
-              <div className="page-heading">
-                <div><span className="eyebrow">Cost-aware fraud decisions</span><h1>Evidence before automation.</h1><p>MerchantShield turns a calibrated fraud score and validation-derived rules into <strong>APPROVE</strong>, <strong>REVIEW</strong>, or <strong>BLOCK</strong>.</p></div>
-                <button className="secondary-button" onClick={() => setActive("cost")}><FlaskConical size={15} /> Open Cost Lab</button>
+            <section className="module-page overview-page">
+              <div className="hero-heading">
+                <div>
+                  <span className="eyebrow">MerchantShield</span>
+                  <h1>Cost-Aware Fraud<br />Decision Engine</h1>
+                  <p>Real IEEE-CIS evidence, chronological validation, and transparent model limitations—without presenting development results as final performance.</p>
+                </div>
+                <div className="hero-status"><ShieldCheck size={20} /><div><strong>{evidenceLabel}</strong><span>{candidateDescription}</span></div></div>
               </div>
 
-              <div className={`provenance-banner ${data.evaluated ? "ready" : "pending"}`}>
-                {data.evaluated ? <FileCheck2 size={18} /> : <FileWarning size={18} />}
-                <div><strong>{data.evaluated ? "Held-out evidence loaded" : "No result has been fabricated"}</strong><span>{provenance}</span></div>
-                <button onClick={() => document.getElementById("readiness")?.scrollIntoView({ behavior: "smooth" })}>View readiness <ArrowRight size={14} /></button>
-              </div>
+              {loading && <LoadingOverview />}
+              {error && <EvidenceError message={error} onRetry={reloadEvidence} />}
 
-              <div className="metrics-grid">
-                <MetricCard icon={Database} label="Transactions evaluated" value={formatMetric(metrics?.transactions_evaluated)} note="Held-out temporal test set" />
-                <MetricCard icon={ShieldCheck} label="Fraud cases" value={formatMetric(metrics?.fraud_cases)} note="Ground-truth labels" />
-                <MetricCard icon={Gauge} label="Precision" value={formatMetric(metrics?.precision, "percent")} note="Final BLOCK prediction quality" />
-                <MetricCard icon={BarChart3} label="Recall" value={formatMetric(metrics?.recall, "percent")} note="Held-out fraud detected" />
-                <MetricCard icon={ReceiptIndianRupee} label="Estimated total cost" value={formatMetric(metrics?.estimated_total_cost, "currency")} note="Current merchant assumptions" />
-              </div>
-
-              <div className="overview-grid">
-                <article className="panel flow-panel">
-                  <div className="panel-heading"><div><span>Core decision loop</span><h2>One explainable path</h2></div><ShieldCheck size={18} /></div>
-                  <div className="decision-flow">
-                    <div><i>01</i><span><strong>Risk score</strong><small>Frozen model probability</small></span></div><ArrowRight size={16} />
-                    <div><i>02</i><span><strong>Rules</strong><small>Validation evidence only</small></span></div><ArrowRight size={16} />
-                    <div><i>03</i><span><strong>Decision</strong><small>Approve · Review · Block</small></span></div><ArrowRight size={16} />
-                    <div><i>04</i><span><strong>Feedback</strong><small>Persisted, never auto-trained</small></span></div>
-                  </div>
-                  <div className="threshold-strip" style={{ background: `linear-gradient(90deg, #eaf4ee 0 ${reviewThreshold * 100}%, #fff5df ${reviewThreshold * 100}% ${blockThreshold * 100}%, #fcedeb ${blockThreshold * 100}%)` }}>
-                    <span>APPROVE</span><i style={{ left: `${reviewThreshold * 100}%` }} /><span>REVIEW</span><i style={{ left: `${blockThreshold * 100}%` }} /><span>BLOCK</span>
-                  </div>
-                  <small className="threshold-copy">Current proposed thresholds: review at {reviewThreshold.toFixed(2)}, block at {blockThreshold.toFixed(2)}. Merchant-configurable assumptions, not model metrics.</small>
-                </article>
-
-                <article className="panel evidence-panel">
-                  <div className="panel-heading"><div><span>Held-out evaluation</span><h2>Precision & recall</h2></div><BadgeCheck size={18} /></div>
-                  {data.evaluated && metrics ? (
-                    <div className="precision-recall">
-                      <div style={{ "--meter": `${metrics.precision * 100}%` } as React.CSSProperties}><span>Precision</span><strong>{formatMetric(metrics.precision, "percent")}</strong><i /></div>
-                      <div style={{ "--meter": `${metrics.recall * 100}%` } as React.CSSProperties}><span>Recall</span><strong>{formatMetric(metrics.recall, "percent")}</strong><i /></div>
-                      <p>{data.provenance}</p>
+              {status && comparison && importance && (
+                <>
+                  <section className="section-block">
+                    <div className="section-heading"><div><span>REAL IEEE-CIS DATASET</span><h2>Evidence starts with the data</h2></div><Database size={20} /></div>
+                    <div className="dataset-grid">
+                      <MetricCard icon={Database} label="Transactions" value={formatNumber(status.dataset.transactions)} detail="Official labeled training rows" />
+                      <MetricCard icon={ShieldCheck} label="Fraud transactions" value={formatNumber(status.dataset.fraud_transactions)} detail="Observed target labels" />
+                      <MetricCard icon={TrendingUp} label="Fraud prevalence" value={formatPercent(status.dataset.fraud_prevalence, 3)} detail="Strongly imbalanced target" />
+                      <MetricCard icon={Layers3} label="Identity coverage" value={formatPercent(status.dataset.identity_coverage, 2)} detail={`${formatNumber(status.dataset.identity_rows)} identity rows`} />
                     </div>
-                  ) : <EmptyEvidence title="Not evaluated yet" detail="Run the real IEEE-CIS pipeline, freeze the model and thresholds on validation, then perform the single held-out test evaluation." />}
-                </article>
-              </div>
+                  </section>
 
-              <div className="overview-grid lower" id="readiness">
-                <article className="panel readiness-panel">
-                  <div className="panel-heading"><div><span>Implementation state</span><h2>Evidence readiness</h2></div><BookOpen size={18} /></div>
-                  <div className="readiness-list">
-                    <div className="done"><Check size={14} /><span><strong>Software path</strong><small>Loader, temporal split, models, cost engine, API and UI</small></span><b>READY</b></div>
-                    <div className={data.dataset.available ? "done" : "waiting"}><span className="step-dot" /><span><strong>Local dataset</strong><small>train_transaction.csv + train_identity.csv</small></span><b>{data.dataset.available ? "READY" : "WAITING"}</b></div>
-                    <div className={data.model.available ? "done" : "waiting"}><span className="step-dot" /><span><strong>Frozen model</strong><small>Selected on validation only</small></span><b>{data.model.available ? "READY" : "WAITING"}</b></div>
-                    <div className={data.evaluated ? "done" : "waiting"}><span className="step-dot" /><span><strong>Held-out report</strong><small>Source of truth for product metrics</small></span><b>{data.evaluated ? "READY" : "WAITING"}</b></div>
-                  </div>
-                </article>
+                  <section className="overview-pair">
+                    <article className="panel progress-panel">
+                      <div className="panel-title"><div><span>PROJECT STATUS</span><h2>Evidence readiness</h2></div><Clock3 size={19} /></div>
+                      <div className="progress-list">
+                        {([
+                          ["Data ingestion", "Complete", true, false],
+                          ["EDA", "Complete", true, false],
+                          ["Temporal split", "Complete", true, false],
+                          ["Logistic baseline", "Complete", true, false],
+                          ["CatBoost candidate", "Complete", true, false],
+                          ["Validation threshold analysis", thresholdAnalysisReady ? "Complete" : "Pending", thresholdAnalysisReady, false],
+                          ["Rules", "Pending", false, false],
+                          ["Held-out final evaluation", "Sealed", false, true],
+                        ] as Array<[string, string, boolean, boolean]>).map(([label, state, done, locked]) => (
+                          <div key={String(label)} className={done ? "complete" : locked ? "sealed" : "pending"}>
+                            <i>{done ? <Check size={13} /> : locked ? <LockKeyhole size={12} /> : null}</i>
+                            <span>{label}</span><b>{state}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
 
-                <article className="panel distribution-panel">
-                  <div className="panel-heading"><div><span>Final decisions</span><h2>Decision distribution</h2></div><BarChart3 size={18} /></div>
-                  {data.decision_distribution ? (
-                    <div className="distribution-bars">
-                      {(["approve", "review", "block"] as const).map((key) => <div key={key}><span>{key}</span><i><b style={{ width: `${data.decision_distribution![key].share * 100}%` }} /></i><strong>{formatMetric(data.decision_distribution![key].count)}</strong></div>)}
+                    <article className="panel final-panel">
+                      <div className="panel-title"><div><span>FINAL HELD-OUT EVALUATION</span><h2>Still deliberately locked</h2></div><LockKeyhole size={19} /></div>
+                      <div className="locked-grid">
+                        {[
+                          "Precision", "Recall", "F1", "PR-AUC", "Estimated cost",
+                        ].map((label) => <LockedValue key={label} label={label} />)}
+                      </div>
+                      <p><LockKeyhole size={13} /> Held-out test remains sealed. Validation evidence is never relabelled as final performance.</p>
+                    </article>
+                  </section>
+
+                  <section className="section-block split-section">
+                    <div className="section-heading"><div><span>CHRONOLOGICAL EVALUATION</span><h2>Train early. Validate later. Seal the future.</h2></div><Clock3 size={20} /></div>
+                    <div className="split-timeline">
+                      <div className="train" title={`TransactionDT ${formatNumber(status.split.train_transaction_dt_min)}–${formatNumber(status.split.train_transaction_dt_max)}`}><span>TRAIN</span><strong>{formatPercent(status.split.train_fraction, 0)}</strong><small>{formatNumber(status.split.train_rows)} transactions</small><em>TransactionDT {formatNumber(status.split.train_transaction_dt_min)}–{formatNumber(status.split.train_transaction_dt_max)}</em></div>
+                      <div className="validation" title={`TransactionDT ${formatNumber(status.split.validation_transaction_dt_min)}–${formatNumber(status.split.validation_transaction_dt_max)}`}><span>VALIDATION</span><strong>{formatPercent(status.split.validation_fraction, 0)}</strong><small>{formatNumber(status.split.validation_rows)} transactions</small><em>TransactionDT {formatNumber(status.split.validation_transaction_dt_min)}–{formatNumber(status.split.validation_transaction_dt_max)}</em></div>
+                      <div className="test" title={`TransactionDT ${formatNumber(status.split.test_transaction_dt_min)}–${formatNumber(status.split.test_transaction_dt_max)}`}><span><LockKeyhole size={12} /> HELD-OUT TEST</span><strong>{formatPercent(status.split.test_fraction, 0)}</strong><small>{formatNumber(status.split.test_rows)} transactions</small><em>SEALED · TransactionDT {formatNumber(status.split.test_transaction_dt_min)}–{formatNumber(status.split.test_transaction_dt_max)}</em></div>
                     </div>
-                  ) : <EmptyEvidence title="Not evaluated yet" detail="Decision counts appear only after two thresholds are frozen and applied to the held-out predictions." />}
-                </article>
-              </div>
+                    <div className="why-card"><Info size={17} /><p>Fraud patterns evolve over time. MerchantShield trains on earlier transactions and validates on later transactions rather than mixing future and past observations through a random split.</p></div>
+                  </section>
+
+                  <section className="section-block validation-section">
+                    <div className="validation-label"><span>VALIDATION RESULTS</span><small title="These metrics were measured on the chronological validation partition. The held-out test set remains sealed."><Info size={13} /> Not final held-out performance</small></div>
+                    <div className="section-heading"><div><span>MODEL VALIDATION COMPARISON</span><h2>Nonlinear ranking captures more signal</h2></div><div className="improvement-chip"><TrendingUp size={15} /><span>Average Precision improvement<strong>+{formatPercent(comparison.average_precision_relative_improvement, 2)}</strong></span></div></div>
+                    <div className="comparison-layout">
+                      <div className="comparison-table">
+                        <div className="comparison-row comparison-head"><span>Metric</span><strong>Logistic Regression</strong><strong>CatBoost</strong></div>
+                        {[
+                          ["Average Precision", "average_precision", "decimal"],
+                          ["ROC-AUC", "roc_auc", "decimal"],
+                          [`Precision @${comparison.threshold.toFixed(2)}`, "precision_at_0_5", "percent"],
+                          [`Recall @${comparison.threshold.toFixed(2)}`, "recall_at_0_5", "percent"],
+                          [`F1 @${comparison.threshold.toFixed(2)}`, "f1_at_0_5", "percent"],
+                          ["False Positives", "false_positives", "integer"],
+                          ["False Negatives", "false_negatives", "integer"],
+                        ].map(([label, key, kind]) => {
+                          const logistic = comparison.logistic_regression.metrics[key as keyof typeof comparison.logistic_regression.metrics] as number;
+                          const catboost = comparison.catboost.metrics[key as keyof typeof comparison.catboost.metrics] as number;
+                          const value = (input: number) => kind === "percent" ? formatPercent(input) : kind === "integer" ? formatNumber(input) : input.toFixed(4);
+                          return <div className="comparison-row" key={label}><span>{label}</span><strong>{value(logistic)}</strong><strong className="candidate-value">{value(catboost)}</strong></div>;
+                        })}
+                      </div>
+                      <div className="chart-card">
+                        <h3>Core validation metrics</h3>
+                        <ResponsiveContainer width="100%" height={285}>
+                          <BarChart data={performanceData} margin={{ top: 16, right: 8, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ebe8" />
+                            <XAxis dataKey="metric" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 0.5]} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                            <Tooltip formatter={(value) => formatPercent(Number(value))} />
+                            <Legend wrapperStyle={{ fontSize: 10 }} />
+                            <Bar dataKey="logistic" name="Logistic Regression" fill="#aeb8b2" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="catboost" name="CatBoost" fill="#237454" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="overview-pair model-row">
+                    <article className="panel curve-panel">
+                      <div className="panel-title"><div><span>VALIDATION PRECISION-RECALL CURVE</span><h2>Ranking quality across thresholds</h2></div><BarChart3 size={19} /></div>
+                      <ResponsiveContainer width="100%" height={310}>
+                        <LineChart data={curveData} margin={{ top: 18, right: 15, left: -12, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e7ebe8" />
+                          <XAxis type="number" dataKey="recall" domain={[0, 1]} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tick={{ fontSize: 9 }} />
+                          <YAxis domain={[0, 1]} tickFormatter={(value) => `${Math.round(Number(value) * 100)}%`} tick={{ fontSize: 9 }} />
+                          <Tooltip formatter={(value) => formatPercent(Number(value))} labelFormatter={(value) => `Recall ${formatPercent(Number(value))}`} />
+                          <Legend wrapperStyle={{ fontSize: 10 }} />
+                          <Line dataKey="logistic" name="Logistic Regression" stroke="#98a39d" strokeWidth={2} dot={false} />
+                          <Line dataKey="catboost" name="CatBoost" stroke="#237454" strokeWidth={2.5} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </article>
+
+                    <article className="panel candidate-panel">
+                      <div className="panel-title"><div><span>SELECTED CANDIDATE</span><h2>CatBoostClassifier</h2></div><ShieldCheck size={19} /></div>
+                      <div className="candidate-specs">
+                        <div><span>Status</span><strong>Validation candidate</strong></div>
+                        <div><span>Feature count</span><strong>{comparison.candidate_details.feature_count}</strong></div>
+                        <div><span>Identity fields</span><strong>{comparison.candidate_details.identity_fields_included ? "Included" : "Excluded"}</strong></div>
+                        <div><span>Class weighting</span><strong>{comparison.candidate_details.class_weight}</strong></div>
+                      </div>
+                      <div className="selection-reason"><Info size={16} /><div><strong>Why selected</strong><p>Removing identity information reduced AP by only {comparison.candidate_details.identity_ap_loss.toFixed(4)} while reducing dependence on a temporally shifting enrichment process.</p></div></div>
+                    </article>
+                  </section>
+
+                  <section className="overview-pair model-row">
+                    <article className="panel importance-panel">
+                      <div className="panel-title"><div><span>FEATURE IMPORTANCE</span><h2>Top predictive associations</h2></div><Layers3 size={19} /></div>
+                      <ResponsiveContainer width="100%" height={390}>
+                        <BarChart data={importance.items} layout="vertical" margin={{ top: 12, right: 20, left: 25, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7ebe8" />
+                          <XAxis type="number" tick={{ fontSize: 9 }} axisLine={false} />
+                          <YAxis type="category" dataKey="feature" width={100} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                          <Tooltip formatter={(value) => Number(value).toFixed(3)} />
+                          <Bar dataKey="importance" name="Importance" fill="#237454" radius={[0, 5, 5, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <p className="chart-note">{importance.note} Masked fields retain their source names; no undocumented meanings are invented.</p>
+                    </article>
+
+                    <article className="panel failure-panel">
+                      <div className="panel-title"><div><span>WHERE THE MODEL STILL STRUGGLES</span><h2>Failure slices remain visible</h2></div><AlertTriangle size={19} /></div>
+                      <span className="analysis-label">{comparison.failure_analysis.label}</span>
+                      <div className="failure-table">
+                        <div className="failure-row failure-head"><span>Slice</span><span>Logistic</span><span>CatBoost</span><span>Improvement</span></div>
+                        {comparison.failure_analysis.slices.map((slice) => <div className="failure-row" key={slice.slice}><strong>{slice.slice}</strong><span>{formatPercent(slice.logistic_recall)}</span><span>{formatPercent(slice.catboost_recall)}</span><span className="positive">+{formatPercent(slice.absolute_improvement)}</span></div>)}
+                      </div>
+                      <div className="fn-summary">
+                        <div><span>False negatives</span><strong>{formatNumber(comparison.failure_analysis.false_negatives.count)}</strong></div>
+                        <div><span>Total FN amount</span><strong>{formatNumber(comparison.failure_analysis.false_negatives.transaction_amount_total, 3)}</strong></div>
+                        <div><span>Maximum FN amount</span><strong>{formatNumber(comparison.failure_analysis.false_negatives.transaction_amount_max, 3)}</strong></div>
+                      </div>
+                      <div className="limitation-card"><AlertTriangle size={16} /><p><strong>Known limitation.</strong> At threshold {comparison.threshold.toFixed(2)} the model still misses many fraudulent transactions. This threshold is used only for validation comparison and is not the final operating threshold.</p></div>
+                    </article>
+                  </section>
+                </>
+              )}
             </section>
           )}
 
           {active === "transactions" && (
-            <section className="module-page">
-              <div className="page-heading compact"><div><span className="eyebrow">Held-out explorer</span><h1>Transactions</h1><p>Inspect actual labels, scores, rules, and model errors without hiding failure cases.</p></div></div>
-              <div className="toolbar">
-                <label className="search-field"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search transaction ID" /></label>
-                <label className="select-field"><Filter size={14} /><select value={decision} onChange={(event) => setDecision(event.target.value as typeof decision)}><option>ALL</option><option>APPROVE</option><option>REVIEW</option><option>BLOCK</option></select><ChevronDown size={14} /></label>
-                <span className="result-count">{data.evaluated ? `${filteredTransactions.length} loaded rows` : "No held-out rows loaded"}</span>
-              </div>
-              {filteredTransactions.length ? <TransactionTable rows={filteredTransactions} onSelect={setSelected} /> : (
-                <EmptyEvidence title="No held-out transactions available" detail="Competition rows remain local-only. After evaluation, export a bounded set of permitted examples from real predictions; never invent transaction history for this table." action={<a className="inline-link" href="#setup" onClick={(event) => { event.preventDefault(); setActive("overview"); window.setTimeout(() => document.getElementById("readiness")?.scrollIntoView({ behavior: "smooth" }), 0); }}>See data readiness <ArrowRight size={14} /></a>} />
+            <section className="module-page transactions-page">
+              <div className="compact-heading"><div><span className="eyebrow">Chronological validation partition</span><h1>Validation Transactions</h1><p>Real saved CatBoost predictions joined to a deliberately bounded set of documented validation fields.</p></div><div className="validation-pill"><ShieldCheck size={15} /> VALIDATION ONLY</div></div>
+
+              {interesting && (
+                <div className="interesting-section">
+                  <div className="section-heading small"><div><span>INTERESTING VALIDATION CASES</span><h2>Programmatically selected</h2></div></div>
+                  <div className="interesting-grid">
+                    {interesting.cases.map((item) => <button key={item.case_type} onClick={() => setSelected(item)}><span>{interestingLabels[item.case_type]}</span><strong>{item.transaction_id}</strong><small>TransactionAmt {formatAmount(item.transaction_amount)} · {formatPercent(item.fraud_probability)} risk</small><ArrowRight size={14} /></button>)}
+                  </div>
+                </div>
               )}
+
+              <div className="filter-bar">
+                <div className="filter-tabs" aria-label="Validation transaction filters">
+                  {validationFilters.map((item) => <button key={item.id} className={filter === item.id ? "active" : ""} onClick={() => changeFilter(item.id)}>{item.label}</button>)}
+                </div>
+                <label className="search-field"><Search size={15} /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search TransactionID" /></label>
+              </div>
+
+              {transactionError && <EvidenceError message={transactionError} onRetry={() => setTransactionReloadKey((value) => value + 1)} />}
+              {transactionsLoading && <div className="table-loading"><span /><span /><span /><span /></div>}
+              {!transactionsLoading && transactions && transactions.items.length > 0 && <TransactionTable rows={transactions.items} threshold={transactions.threshold} onSelect={setSelected} />}
+              {!transactionsLoading && transactions && transactions.items.length === 0 && <div className="empty-state"><Filter size={22} /><h2>No matching validation transactions</h2><p>Change the filter or TransactionID search. No placeholder rows are substituted.</p></div>}
+              {transactions && (
+                <div className="pagination"><span>{formatNumber(transactions.total)} matching rows · Page {transactions.page} of {Math.max(transactions.page_count, 1)}</span><div><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft size={15} /> Previous</button><button disabled={page >= transactions.page_count} onClick={() => setPage((value) => value + 1)}>Next <ChevronRight size={15} /></button></div></div>
+              )}
+              <p className="transaction-note"><Info size={13} /> High Risk uses the saved validation comparison threshold{transactions ? ` (${transactions.threshold.toFixed(2)})` : ""}. High Value means TransactionAmt ≥ 500. Neither is an operational recommendation.</p>
             </section>
           )}
 
           {active === "reviews" && (
-            <section className="module-page">
-              <div className="page-heading compact"><div><span className="eyebrow">Human-in-the-loop controls</span><h1>Review Queue</h1><p>Analyst feedback is persisted for future iteration. It never triggers automatic retraining.</p></div></div>
-              <div className="review-policy"><BadgeCheck size={17} /><div><strong>Review policy</strong><span>Only transactions in the configured review band appear here. A decision and reason are required.</span></div><b>{data.reviews.length} OPEN</b></div>
-              {data.reviews.length ? <div className="review-list">{data.reviews.map((review) => <article key={review.id}><span>{review.transaction_id}</span><strong>{(review.risk_score * 100).toFixed(1)}%</strong><p>{review.primary_factors.join(" · ") || "No contribution artifact available"}</p><button onClick={() => { setSelectedReview(review); setReviewNote(""); setReviewMessage(""); }}>Open review <ArrowRight size={14} /></button></article>)}</div> : (
-                <EmptyEvidence title="Review queue is empty" detail="The queue will be seeded only from real held-out REVIEW decisions or genuine production events. Synthetic review cases are never shown as historical evidence." />
-              )}
+            <section className="module-page locked-page">
+              <div className="compact-heading"><div><span className="eyebrow">Human-in-the-loop operations</span><h1>Review Queue</h1><p>The product surface is ready, but no provisional validation decision is presented as an operational case.</p></div></div>
+              <div className="locked-empty"><div className="lock-orbit"><LockKeyhole size={26} /></div><span>OPERATIONAL THRESHOLDS LOCKED</span><h2>Review thresholds are not activated yet.</h2><p>{thresholdAnalysisReady ? "Validation threshold analysis exists, but operational activation requires the model, rules, governance, and final held-out evaluation to be frozen." : "Operational activation requires validated thresholds, rules, governance, and final held-out evaluation."} No fake review cases are shown.</p><div className="locked-steps"><div className={status ? "done" : ""}>{status ? <Check size={14} /> : <Clock3 size={14} />}<span>Validation model evidence</span></div><div className={thresholdAnalysisReady ? "done" : ""}>{thresholdAnalysisReady ? <Check size={14} /> : <Clock3 size={14} />}<span>Validation threshold analysis</span></div><div><Clock3 size={14} /><span>Rule design and final evaluation</span></div></div></div>
             </section>
           )}
 
           {active === "cost" && (
-            <section className="module-page">
-              <div className="page-heading compact"><div><span className="eyebrow">Merchant decision economics</span><h1>Cost Lab</h1><p>Explore how review and block thresholds trade fraud loss against customer friction and review operations.</p></div><span className="assumption-tag"><CircleDollarSign size={15} /> Merchant assumptions</span></div>
-              <div className="cost-layout">
-                <article className="panel controls-panel">
-                  <div className="panel-heading"><div><span>Decision thresholds</span><h2>Proposed configuration</h2></div><SlidersHorizontal size={18} /></div>
-                  <label className="range-control"><span><b>Review threshold</b><strong>{reviewThreshold.toFixed(2)}</strong></span><input type="range" min="0.01" max="0.94" step="0.01" value={reviewThreshold} onChange={(event) => updateReviewThreshold(Number(event.target.value))} /><small>Scores at or above this value enter manual review.</small></label>
-                  <label className="range-control"><span><b>Block threshold</b><strong>{blockThreshold.toFixed(2)}</strong></span><input type="range" min="0.06" max="0.99" step="0.01" value={blockThreshold} onChange={(event) => updateBlockThreshold(Number(event.target.value))} /><small>Must remain greater than the review threshold.</small></label>
-                  <div className="assumption-grid">
-                    <label><span>Fraud loss fraction</span><div><input type="number" min="0" max="2" step="0.05" value={assumptions.fraud_loss_fraction} onChange={(event) => setAssumptions({ ...assumptions, fraud_loss_fraction: Number(event.target.value) })} /><b>× amount</b></div></label>
-                    <label><span>Merchant margin</span><div><input type="number" min="0" max="1" step="0.01" value={assumptions.legitimate_margin_rate} onChange={(event) => setAssumptions({ ...assumptions, legitimate_margin_rate: Number(event.target.value) })} /><b>fraction</b></div></label>
-                    <label><span>Review cost</span><div><input type="number" min="0" step="1" value={assumptions.manual_review_cost} onChange={(event) => setAssumptions({ ...assumptions, manual_review_cost: Number(event.target.value) })} /><b>INR</b></div></label>
-                    <label><span>Fraud caught in review</span><div><input type="number" min="0" max="1" step="0.01" value={assumptions.review_fraud_catch_rate} onChange={(event) => setAssumptions({ ...assumptions, review_fraud_catch_rate: Number(event.target.value) })} /><b>rate</b></div></label>
-                    <label><span>Legitimate approved in review</span><div><input type="number" min="0" max="1" step="0.01" value={assumptions.review_legitimate_approval_rate} onChange={(event) => setAssumptions({ ...assumptions, review_legitimate_approval_rate: Number(event.target.value) })} /><b>rate</b></div></label>
-                  </div>
-                  <div className="validation-rule"><Check size={14} /><span>Valid: review threshold &lt; block threshold</span></div>
+            <section className="module-page cost-page">
+              <div className="compact-heading"><div><span className="eyebrow">Merchant decision economics</span><h1>Cost Lab</h1><p>Assumptions and controls remain visible as product structure while operational monetary claims stay disabled.</p></div><div className="locked-pill"><LockKeyhole size={14} /> OPERATIONAL SIMULATION LOCKED</div></div>
+              <div className="cost-locked-grid">
+                <article className="panel disabled-controls">
+                  <div className="panel-title"><div><span>CONFIGURATION</span><h2>Awaiting operational activation</h2></div><SlidersHorizontal size={19} /></div>
+                  {["Review threshold", "Block threshold", "Merchant margin", "Review cost", "Fraud loss assumption"].map((label) => <label key={label}><span>{label}<b>—</b></span><input type="range" min="0" max="1" value="0" disabled readOnly /></label>)}
+                  <div className="disabled-note"><Info size={15} /><p>Cost simulation will be enabled after validation methodology, rules, and operational thresholds are frozen. No rupee estimate is displayed here.</p></div>
                 </article>
-
-                <article className="panel outcome-panel">
-                  <div className="panel-heading"><div><span>Calculated over held-out predictions</span><h2>{simulating ? "Recalculating…" : "Configuration impact"}</h2></div><FlaskConical size={18} /></div>
-                  {simulation?.evaluated && simulation.proposed ? (
-                    <div className="cost-results">
-                      <div className="cost-hero"><span>Total estimated cost</span><strong>{formatMetric(simulation.proposed.total_estimated_cost, "currency")}</strong><small>Lowest estimated cost under current assumptions is highlighted only when a validation search artifact is available.</small></div>
-                      <div className="cost-metric-grid"><span>Precision<strong>{formatMetric(simulation.proposed.precision, "percent")}</strong></span><span>Recall<strong>{formatMetric(simulation.proposed.recall, "percent")}</strong></span><span>False positives<strong>{formatMetric(simulation.proposed.false_positives)}</strong></span><span>False negatives<strong>{formatMetric(simulation.proposed.false_negatives)}</strong></span><span>Review volume<strong>{formatMetric(simulation.proposed.review_volume)}</strong></span><span>Block volume<strong>{formatMetric(simulation.proposed.block_volume)}</strong></span></div>
-                    </div>
-                  ) : <EmptyEvidence title="Not evaluated yet" detail={simulation?.provenance ?? "Cost simulation requires real held-out labels, prediction probabilities, and transaction amounts. Your merchant assumptions are editable, but no monetary result is invented."} />}
-                  <div className="formula-note"><Info size={15} /><div><strong>Transparent cost formula</strong><span>Fraud loss + legitimate block cost + review cost + residual review outcomes. Every assumption is separated from model-derived counts.</span></div></div>
+                <article className="panel locked-result">
+                  <div className="panel-title"><div><span>FINAL COST</span><h2>Not evaluated yet</h2></div><CircleDollarSign size={19} /></div>
+                  <div className="result-lock"><LockKeyhole size={28} /><strong>No monetary result shown</strong><p>Validation assumptions must not be presented as realized merchant savings or final held-out cost.</p></div>
+                  <div className="formula-strip"><FlaskConical size={16} /><span>Future output: fraud loss + false-positive cost + review cost, under explicit merchant assumptions.</span></div>
                 </article>
               </div>
             </section>
@@ -422,32 +568,27 @@ export default function Home() {
 
       {selected && (
         <div className="drawer-scrim">
-          <button className="drawer-backdrop" onClick={() => setSelected(null)} aria-label="Close transaction details" />
+          <button className="drawer-backdrop" onClick={() => setSelected(null)} aria-label="Close transaction detail" />
           <aside className="detail-drawer">
             <button className="icon-button drawer-close" onClick={() => setSelected(null)} aria-label="Close transaction"><X size={18} /></button>
-            <span className="eyebrow">Held-out transaction</span><h2>{selected.transaction_id}</h2>
-            {selected.model_error && <div className="model-error">MODEL ERROR</div>}
-            <dl><div><dt>Amount</dt><dd>{selected.amount}</dd></div><div><dt>Risk score</dt><dd>{(selected.risk_score * 100).toFixed(1)}%</dd></div><div><dt>Decision</dt><dd>{selected.decision}</dd></div><div><dt>Actual label</dt><dd>{selected.actual_label === 1 ? "Fraud" : "Legitimate"}</dd></div></dl>
-            <h3>Top factors</h3><div className="factor-list">{selected.top_factors.map((factor) => <span key={factor.feature_name}><strong>{factor.feature_name}</strong><small>{factor.contribution.toFixed(4)} contribution</small></span>)}</div>
-            <p className="drawer-note">Masked IEEE-CIS fields are shown by their source names. MerchantShield does not invent undocumented business meanings.</p>
+            <span className="eyebrow">Validation transaction</span>
+            <h2>{selected.transaction_id}</h2>
+            {selected.model_error && <div className="model-error"><AlertTriangle size={14} /> MODEL ERROR</div>}
+            <div className={`outcome-banner ${selected.outcome.toLowerCase()}`}>{labelOutcome(selected.outcome)}</div>
+            <dl>
+              <div><dt>TransactionAmt</dt><dd>{formatAmount(selected.transaction_amount)}</dd></div>
+              <div><dt>Fraud probability</dt><dd>{formatPercent(selected.fraud_probability)}</dd></div>
+              <div><dt>Saved prediction label</dt><dd>{selected.predicted_label_at_0_5 ? "Fraud" : "Legitimate"}</dd></div>
+              <div><dt>Actual validation label</dt><dd>{selected.actual_label ? "Fraud" : "Legitimate"}</dd></div>
+              <div><dt>TransactionDT</dt><dd>{formatNumber(selected.transaction_dt)}</dd></div>
+              <div><dt>Partition</dt><dd>Validation</dd></div>
+            </dl>
+            <h3>Selected model inputs</h3>
+            <div className="feature-list">
+              {Object.entries(selected.features).map(([feature, value]) => <div key={feature}><span>{feature}</span><strong>{value === null ? "Missing" : String(value)}</strong></div>)}
+            </div>
+            <p className="drawer-note"><Info size={13} /> Masked IEEE-CIS fields retain their source names. MerchantShield does not invent meanings for C* or D* variables.</p>
           </aside>
-        </div>
-      )}
-
-      {selectedReview && (
-        <div className="review-modal-shell">
-          <button className="review-modal-backdrop" onClick={() => setSelectedReview(null)} aria-label="Close review" />
-          <section className="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-title">
-            <button className="icon-button review-close" onClick={() => setSelectedReview(null)} aria-label="Close review"><X size={18} /></button>
-            <span className="eyebrow">Human review</span>
-            <h2 id="review-title">{selectedReview.transaction_id}</h2>
-            <div className="review-score"><span>Model risk score</span><strong>{(selectedReview.risk_score * 100).toFixed(1)}%</strong></div>
-            <div className="review-factors"><span>Primary model factors</span><p>{selectedReview.primary_factors.join(" · ") || "No contribution artifact available"}</p></div>
-            <label className="review-note"><span>Reviewer note <b>Required</b></span><textarea value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="Record the evidence behind this decision…" maxLength={1000} /></label>
-            {reviewMessage && <p className="review-message">{reviewMessage}</p>}
-            <div className="review-actions"><button className="approve-button" disabled={reviewSaving} onClick={() => submitReview("APPROVE")}><Check size={15} /> Approve</button><button className="decline-button" disabled={reviewSaving} onClick={() => submitReview("DECLINE")}><X size={15} /> Decline</button></div>
-            <small>Reviewer feedback is stored for future iteration and never starts automatic retraining.</small>
-          </section>
         </div>
       )}
     </div>
