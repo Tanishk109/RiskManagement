@@ -86,8 +86,11 @@ test("frontend clearly separates validation evidence from final results", async 
 test("active validation product surfaces keep costs estimated and final results sealed", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /Reveal Ground Truth/);
+  assert.match(page, /VALIDATION SIMULATION READY/);
+  assert.match(page, /VALIDATION REVIEW SIMULATION/);
+  assert.match(page, /Use Provisional Validation Configuration/);
+  assert.match(page, /Use Lowest-Cost Feasible Configuration/);
   assert.match(page, /ILLUSTRATIVE|assumption_status|Estimated—not realized/);
-  assert.match(page, /Restore lowest-cost feasible validation configuration/);
   assert.match(page, /FRAUD COUNT DETECTION/);
   assert.match(page, /FRAUD AMOUNT CAPTURE/);
   assert.doesNotMatch(page, /moneySaved|guaranteed savings/i);

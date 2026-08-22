@@ -30,6 +30,17 @@ def validation_cost_service(tmp_path) -> ValidationCostService:
             "actual_label": labels,
             "TransactionAmt": amounts,
             "fraud_probability": scores,
+            "ProductCD": ["W", "C", "S", "W"],
+            "card4": ["visa", "visa", "discover", "mastercard"],
+            "card6": ["debit", "credit", "credit", "debit"],
+            "C1": [1, 2, 3, 4],
+            "C2": [1, 2, 3, 4],
+            "C3": [1, 2, 3, 4],
+            "C4": [1, 2, 3, 4],
+            "C5": [1, 2, 3, 4],
+            "D1": [1, 2, 3, 4],
+            "D2": [None, 2, 3, 4],
+            "D3": [1, 2, 3, None],
         }
     )
     assumptions = {
@@ -208,6 +219,9 @@ def test_validation_summary_matches_saved_config(validation_client):
     assert payload["block_threshold"] == 0.85
     assert payload["provisional"] is True
     assert "validation predictions only" in payload["provenance"]
+    residual = validation_client.get("/api/v1/validation/residual-risk")
+    assert residual.status_code == 200
+    assert residual.json()["held_out_test_status"] == "sealed_not_evaluated"
 
 
 def test_review_band_hides_labels_and_decision_persists(validation_client, db):
@@ -218,6 +232,7 @@ def test_review_band_hides_labels_and_decision_persists(validation_client, db):
     assert item["transaction_id"] == "104"
     assert item["ground_truth"] is None
     assert "actual_label" not in item
+    assert item["features"]["ProductCD"] is not None
 
     decision = validation_client.post(
         "/api/v1/reviews/validation/104/decision",

@@ -17,10 +17,15 @@ from ..services.project_artifacts import (
     ValidationFilter,
     get_project_artifact_service,
 )
+from ..services.validation_cost import (
+    ValidationCostService,
+    get_validation_cost_service,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["project evidence"])
 
 ArtifactServiceDependency = Annotated[ProjectArtifactService, Depends(get_project_artifact_service)]
+CostServiceDependency = Annotated[ValidationCostService, Depends(get_validation_cost_service)]
 
 
 def _unavailable(exc: ArtifactUnavailable) -> HTTPException:
@@ -80,5 +85,13 @@ def validation_transactions(
 def interesting_cases(service: ArtifactServiceDependency) -> dict[str, object]:
     try:
         return service.interesting_cases()
+    except ArtifactUnavailable as exc:
+        raise _unavailable(exc) from exc
+
+
+@router.get("/validation/residual-risk")
+def validation_residual_risk(service: CostServiceDependency) -> dict[str, object]:
+    try:
+        return service.residual_risk()
     except ArtifactUnavailable as exc:
         raise _unavailable(exc) from exc

@@ -426,6 +426,13 @@ export default function Home() {
     setBlockThreshold(costSimulation.lowest_cost_feasible.block_threshold);
   }
 
+  function useProvisionalValidationConfig() {
+    const scenario = costScenarios?.scenarios.find((item) => item.id === scenarioId);
+    if (!scenario) return;
+    setReviewThreshold(scenario.validation_configuration.review_threshold);
+    setBlockThreshold(scenario.validation_configuration.block_threshold);
+  }
+
   function openReview(item: ValidationReviewItem) {
     setSelectedReview(item);
     setReviewNote(item.reviewer_note ?? "");
@@ -557,7 +564,7 @@ export default function Home() {
                           ["Logistic baseline", "Complete", true, false],
                           ["CatBoost candidate", "Complete", true, false],
                           ["Validation cost + threshold analysis", thresholdAnalysisReady ? "Complete" : "Pending", thresholdAnalysisReady, false],
-                          ["Rules", "Pending", false, false],
+                          ["Rule evaluation", "Pending", false, false],
                           ["Held-out final evaluation", "Sealed", false, true],
                         ] as Array<[string, string, boolean, boolean]>).map(([label, state, done, locked]) => (
                           <div key={String(label)} className={done ? "complete" : locked ? "sealed" : "pending"}>
@@ -582,11 +589,13 @@ export default function Home() {
                   {costSimulation && (
                     <section className="section-block provisional-card">
                       <div className="section-heading"><div><span>PROVISIONAL VALIDATION OPERATING CARD</span><h2>{costSimulation.scenario.name}</h2></div><Gauge size={20} /></div>
+                      <div className="validation-assumption-badge">VALIDATION / ILLUSTRATIVE ASSUMPTIONS</div>
                       <div className="provisional-grid">
                         <div><span>Review threshold</span><strong>{costSimulation.review_threshold.toFixed(3)}</strong></div>
                         <div><span>Block threshold</span><strong>{costSimulation.block_threshold.toFixed(3)}</strong></div>
                         <div><span>Validation review rate</span><strong>{formatPercent(costSimulation.metrics.review_rate)}</strong></div>
                         <div><span>Estimated validation cost</span><strong>{formatCurrency(costSimulation.metrics.total_estimated_cost, costSimulation.metrics.currency)}</strong></div>
+                        <div><span>Estimated reduction vs approve-all</span><strong>{formatPercent(costSimulation.estimated_reduction_vs_approve_all)}</strong></div>
                       </div>
                       <p><Info size={14} /> Provisional validation configuration under illustrative merchant assumptions. This is not a final threshold recommendation or realized savings claim.</p>
                     </section>
@@ -736,7 +745,7 @@ export default function Home() {
 
           {active === "reviews" && (
             <section className="module-page reviews-page">
-              <div className="compact-heading"><div><span className="eyebrow">Human-in-the-loop validation workstation</span><h1>Review Queue</h1><p>Real validation rows inside the provisional review band. Ground truth stays hidden until you explicitly reveal it.</p></div><div className="validation-pill"><Eye size={15} /> LABELS HIDDEN</div></div>
+              <div className="compact-heading"><div><span className="eyebrow">VALIDATION REVIEW SIMULATION</span><h1>Review Queue</h1><p>These cases come from the chronological validation set using the provisional operating thresholds. Analyst decisions below are demonstration feedback and do not alter frozen validation metrics.</p></div><div className="validation-pill"><Eye size={15} /> LABELS HIDDEN</div></div>
               <div className="review-toolbar">
                 <div className="filter-tabs" aria-label="Review queue ordering">
                   {([
@@ -756,6 +765,7 @@ export default function Home() {
                     <button key={item.transaction_id} className="review-card" onClick={() => openReview(item)}>
                       <div><span className="review-id">TX {item.transaction_id}</span><span className={`review-status ${item.status.toLowerCase()}`}>{item.status}</span></div>
                       <strong>{formatAmount(item.transaction_amount)}</strong>
+                      <div className="review-features"><span>{item.features.ProductCD ?? "Product missing"}</span><span>{item.features.card4 ?? "card4 missing"}</span><span>{item.features.card6 ?? "card6 missing"}</span></div>
                       <div className="risk-track"><i style={{ width: `${item.fraud_probability * 100}%` }} /></div>
                       <small>{formatPercent(item.fraud_probability)} fraud probability</small>
                       <footer><span>{item.reviewer_decision ? `Reviewer: ${item.reviewer_decision}` : "Awaiting reviewer"}</span><ArrowRight size={14} /></footer>
@@ -770,7 +780,7 @@ export default function Home() {
 
           {active === "cost" && (
             <section className="module-page cost-page">
-              <div className="compact-heading"><div><span className="eyebrow">Merchant decision economics</span><h1>Cost Lab</h1><p>Explore three-way decisions over saved chronological validation predictions under explicit, illustrative merchant assumptions.</p></div><div className="validation-pill"><FlaskConical size={14} /> PROVISIONAL VALIDATION</div></div>
+              <div className="compact-heading"><div><span className="eyebrow">VALIDATION SIMULATION READY</span><h1>Cost Lab</h1><p>Thresholds and business-cost estimates below were selected on the chronological validation partition. The held-out test remains sealed.</p></div><div className="validation-pill"><FlaskConical size={14} /> VALIDATION ONLY</div></div>
               {costError && <EvidenceError message={costError} onRetry={() => setCostReloadKey((value) => value + 1)} />}
               {costScenarios && costSimulation && (
                 <>
@@ -781,13 +791,22 @@ export default function Home() {
                       <label className="range-label"><span>Review threshold <b>{reviewThreshold.toFixed(3)}</b></span><input type="range" min="0.05" max={Math.max(0.05, blockThreshold - 0.025)} step="0.025" value={reviewThreshold} onChange={(event) => setReviewThreshold(Number(event.target.value))} /></label>
                       <label className="range-label"><span>Block threshold <b>{blockThreshold.toFixed(3)}</b></span><input type="range" min={Math.min(0.95, reviewThreshold + 0.025)} max="0.95" step="0.025" value={blockThreshold} onChange={(event) => setBlockThreshold(Number(event.target.value))} /></label>
                       <label className="select-label"><span>Maximum validation review rate</span><select value={reviewCapacity === null ? "none" : String(reviewCapacity)} onChange={(event) => setReviewCapacity(event.target.value === "none" ? null : Number(event.target.value))}>{costScenarios.review_capacities.map((capacity) => <option key={capacity ?? "none"} value={capacity ?? "none"}>{capacity === null ? "No limit" : formatPercent(capacity, 0)}</option>)}</select></label>
-                      <button className="restore-button" onClick={restoreLowestCost}><RotateCcw size={14} /> Restore lowest-cost feasible validation configuration</button>
+                      <div className="config-actions"><button className="restore-button" title="Lowest estimated-cost threshold pair found on validation under the selected assumptions." onClick={useProvisionalValidationConfig}><RotateCcw size={14} /> Use Provisional Validation Configuration</button><button className="restore-button secondary" onClick={restoreLowestCost}><Gauge size={14} /> Use Lowest-Cost Feasible Configuration</button></div>
                       <div className={`capacity-callout ${costSimulation.capacity_met ? "met" : "missed"}`}><Gauge size={15} /><span>{costSimulation.capacity_met ? "Within selected review capacity" : "Selected review capacity exceeded"} · current review rate {formatPercent(costSimulation.metrics.review_rate)}</span></div>
+                      <div className="assumptions-panel"><span>ILLUSTRATIVE MERCHANT ASSUMPTIONS</span>{([
+                        ["Fraud loss fraction", "fraud_loss_fraction", "percent"],
+                        ["Fixed fraud cost", "chargeback_fixed_cost", "currency"],
+                        ["Legitimate margin rate", "legitimate_margin_rate", "percent"],
+                        ["False-positive fixed cost", "false_positive_fixed_cost", "currency"],
+                        ["Manual review cost", "manual_review_cost", "currency"],
+                        ["Review fraud catch rate", "review_fraud_catch_rate", "percent"],
+                        ["Legitimate review approval rate", "review_legitimate_approval_rate", "percent"],
+                      ] as Array<[string, keyof typeof costSimulation.scenario.assumptions, "percent" | "currency"]>).map(([label, key, kind]) => <div key={key}><small>{label}</small><strong>{kind === "percent" ? formatPercent(Number(costSimulation.scenario.assumptions[key])) : formatCurrency(Number(costSimulation.scenario.assumptions[key]), costSimulation.scenario.assumptions.currency)}</strong></div>)}</div>
                     </article>
                     <article className="panel cost-hero">
-                      <div className="panel-title"><div><span>{costSimulation.cost_output_label}</span><h2>Validation policy estimate</h2></div><CircleDollarSign size={19} /></div>
+                      <div className="panel-title"><div><span>ESTIMATED TOTAL COST</span><h2>Validation simulation</h2></div><CircleDollarSign size={19} /></div>
                       <strong className="cost-total">{formatCurrency(costSimulation.metrics.total_estimated_cost, costSimulation.metrics.currency)}</strong>
-                      <span className="cost-total-note">Across {formatNumber(costSimulation.metrics.transaction_count)} validation transactions</span>
+                      <span className="cost-total-note">Scenario: {costSimulation.scenario.name} · {formatNumber(costSimulation.metrics.transaction_count)} validation transactions</span>
                       <ResponsiveContainer width="100%" height={190}>
                         <BarChart data={costBreakdown} layout="vertical" margin={{ top: 15, right: 10, left: 35, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7ebe8" />
@@ -801,9 +820,19 @@ export default function Home() {
                   </div>
 
                   <section className="section-block policy-section">
-                    <div className="section-heading"><div><span>DYNAMIC POLICY COMPARISON</span><h2>Same validation rows, three decision policies</h2></div>{costLoading && <small>Recomputing…</small>}</div>
+                    <div className="section-heading"><div><span>COMPARE DECISION STRATEGIES</span><h2>Same validation rows, three decision policies</h2></div>{costLoading && <small>Recomputing…</small>}</div>
                     <div className="policy-grid">{costSimulation.policy_comparison.map((policy) => <article key={policy.policy}><span>{policy.policy}</span><strong>{formatCurrency(policy.total_estimated_cost, costSimulation.metrics.currency)}</strong><small>Estimated validation cost</small></article>)}</div>
                     <div className="reduction-grid"><div><span>Estimated reduction vs approve all</span><strong>{formatPercent(costSimulation.estimated_reduction_vs_approve_all)}</strong></div><div><span>Estimated reduction vs binary @0.50</span><strong>{formatPercent(costSimulation.estimated_reduction_vs_binary)}</strong></div></div>
+                    <p className="transaction-note"><Info size={13} /> Under current illustrative assumptions. These are estimated cost reductions, not factual merchant savings.</p>
+                  </section>
+
+                  <section className="tradeoff-grid" aria-label="Live threshold trade-offs">
+                    <div><span>Fraud detection</span><strong>{formatPercent(costSimulation.metrics.detected_fraud_recall)}</strong></div>
+                    <div><span>Fraud amount capture</span><strong>{formatPercent(costSimulation.metrics.fraud_amount_capture_rate)}</strong></div>
+                    <div><span>False positives</span><strong>{formatNumber(costSimulation.metrics.false_positives)}</strong></div>
+                    <div><span>False negatives</span><strong>{formatNumber(costSimulation.metrics.false_negatives)}</strong></div>
+                    <div><span>Review rate</span><strong>{formatPercent(costSimulation.metrics.review_rate)}</strong></div>
+                    <div><span>Block rate</span><strong>{formatPercent(costSimulation.metrics.block_rate)}</strong></div>
                   </section>
 
                   <section className="decision-metrics-grid">
@@ -815,14 +844,14 @@ export default function Home() {
                   {costSimulation.failure_slices && (
                     <section className="section-block residual-section">
                       <div className="section-heading"><div><span>RESIDUAL FRAUD EVIDENCE</span><h2>Approved fraud remains visible</h2></div><AlertTriangle size={19} /></div>
-                      <div className="residual-hero"><div><span>Approved fraudulent transactions</span><strong>{formatNumber(costSimulation.metrics.fraud_approved)}</strong></div><div><span>Approved fraudulent amount</span><strong>{formatCurrency(costSimulation.metrics.fraud_amount_approved, costSimulation.metrics.currency)}</strong></div><div><span>Estimated approved fraud loss</span><strong>{formatCurrency(costSimulation.metrics.approved_fraud_loss, costSimulation.metrics.currency)}</strong></div></div>
+                      <h3 className="residual-subtitle">Fraudulent transaction value by decision</h3><div className="residual-hero"><div><span>Approved fraud</span><strong>{formatNumber(costSimulation.metrics.fraud_approved)}</strong><small>{formatCurrency(costSimulation.metrics.fraud_amount_approved, costSimulation.metrics.currency)} transaction value</small></div><div><span>Reviewed fraud</span><strong>{formatNumber(costSimulation.metrics.fraud_reviewed)}</strong><small>{formatCurrency(costSimulation.metrics.fraud_amount_reviewed, costSimulation.metrics.currency)} transaction value</small></div><div><span>Blocked fraud</span><strong>{formatNumber(costSimulation.metrics.fraud_blocked)}</strong><small>{formatCurrency(costSimulation.metrics.fraud_amount_blocked, costSimulation.metrics.currency)} transaction value</small></div></div>
                       <div className="slice-table"><div className="slice-row slice-head"><span>Failure slice</span><span>Fraud rows</span><span>Approve</span><span>Review</span><span>Block</span></div>{Object.entries(costSimulation.failure_slices).map(([name, slice]) => <div className="slice-row" key={name}><strong>{name}</strong><span>{formatNumber(slice.fraud_rows)}</span><span>{formatNumber(slice.approve.count)}</span><span>{formatNumber(slice.review.count)}</span><span>{formatNumber(slice.block.count)}</span></div>)}</div>
-                      {costSimulation.high_value_fraud && <div className="high-value-list"><h3>Highest-value approved fraud examples</h3>{costSimulation.high_value_fraud.highest_value_approved_fraud_examples.slice(0, 5).map((item) => <div key={item.TransactionID}><strong>{item.TransactionID}</strong><span>{formatCurrency(item.TransactionAmt, costSimulation.metrics.currency)}</span><small>{formatPercent(item.fraud_probability)} risk · {item.ProductCD} · {item.card4}</small></div>)}</div>}
+                      {costSimulation.high_value_fraud && <div className="high-value-list"><h3>Highest-Value Residual Fraud Cases</h3>{costSimulation.high_value_fraud.highest_value_approved_fraud_examples.slice(0, 5).map((item) => <div key={item.TransactionID}><strong>{item.TransactionID}</strong><span>{formatCurrency(item.TransactionAmt, costSimulation.metrics.currency)}</span><small>{formatPercent(item.fraud_probability)} risk · approved because score is below the review threshold</small></div>)}</div>}
                       <p className="transaction-note"><Info size={13} /> Failure-slice dispositions and example cases come from the provisional Scenario B operating configuration (review {costScenarios.default_review_threshold.toFixed(3)}, block {costScenarios.default_block_threshold.toFixed(3)}); the residual totals above follow the current controls.</p>
                     </section>
                   )}
 
-                  {costSimulation.sensitivity_analysis && <section className="section-block sensitivity-section"><div className="section-heading"><div><span>SENSITIVITY EVIDENCE</span><h2>Selected thresholds move with assumptions</h2></div><FlaskConical size={18} /></div><div className="sensitivity-grid">{costSimulation.sensitivity_analysis.map((item, index) => <article key={`${item.parameter}-${item.value}-${index}`}><span>{item.parameter.replaceAll("_", " ")}</span><strong>{item.value}</strong><small>Review {item.lowest_estimated_cost.review_threshold.toFixed(3)} · Block {item.lowest_estimated_cost.block_threshold.toFixed(3)}</small></article>)}</div><p className="transaction-note"><Info size={13} /> One assumption varies at a time; all other Scenario B assumptions remain fixed. These are validation sensitivity results, not universal recommendations.</p></section>}
+                  {costSimulation.sensitivity_analysis && <section className="section-block sensitivity-section"><div className="section-heading"><div><span>WHY THRESHOLDS CHANGE</span><h2>Threshold selection is a business decision, not only a model decision.</h2></div><FlaskConical size={18} /></div><div className="sensitivity-grid">{costSimulation.sensitivity_analysis.map((item, index) => <article key={`${item.parameter}-${item.value}-${index}`}><span>{item.parameter.replaceAll("_", " ")}</span><strong>{item.value}</strong><small>Review {item.lowest_estimated_cost.review_threshold.toFixed(3)} · Block {item.lowest_estimated_cost.block_threshold.toFixed(3)}</small></article>)}</div><p className="transaction-note"><Info size={13} /> One assumption varies at a time; all other Scenario B assumptions remain fixed. These are validation sensitivity results, not universal recommendations.</p></section>}
                 </>
               )}
             </section>
@@ -842,7 +871,7 @@ export default function Home() {
             <dl>
               <div><dt>TransactionAmt</dt><dd>{formatAmount(selected.transaction_amount)}</dd></div>
               <div><dt>Fraud probability</dt><dd>{formatPercent(selected.fraud_probability)}</dd></div>
-              <div><dt>Saved prediction label</dt><dd>{selected.predicted_label_at_0_5 ? "Fraud" : "Legitimate"}</dd></div>
+              <div><dt>Model classification @0.50</dt><dd>{selected.predicted_label_at_0_5 ? "Fraud" : "Legitimate"}</dd></div>
               <div><dt>Business decision</dt><dd>{selected.business_decision ?? "Not configured"}</dd></div>
               <div><dt>Actual validation label</dt><dd>{selected.actual_label ? "Fraud" : "Legitimate"}</dd></div>
               <div><dt>TransactionDT</dt><dd>{formatNumber(selected.transaction_dt)}</dd></div>
@@ -875,6 +904,8 @@ export default function Home() {
               <div><dt>Ground truth</dt><dd>{groundTruth?.ground_truth ?? "Hidden"}</dd></div>
               <div><dt>Review status</dt><dd>{selectedReview.status}</dd></div>
             </dl>
+            <h3>Selected validation fields</h3>
+            <div className="feature-list">{Object.entries(selectedReview.features).map(([feature, value]) => <div key={feature}><span>{feature}</span><strong>{value ?? "Missing"}</strong></div>)}</div>
             {selectedReview.status === "OPEN" ? (
               <>
                 <label className="review-note"><span>Reviewer note <small>Optional</small></span><textarea value={reviewNote} maxLength={1000} onChange={(event) => setReviewNote(event.target.value)} placeholder="Record the evidence behind your decision…" /></label>

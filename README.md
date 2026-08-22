@@ -137,7 +137,7 @@ Or use PostgreSQL, migrated API, and web together:
 docker compose up --build
 ```
 
-The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Validation cost endpoints are `/api/v1/cost/scenarios`, `/api/v1/cost/validation-summary`, `/api/v1/cost/simulate`, and `/api/v1/cost/residual-risk`. Validation review endpoints are `/api/v1/reviews/validation`, `/api/v1/reviews/validation/{transaction_id}/decision`, and `/api/v1/reviews/validation/{transaction_id}/ground-truth`.
+The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Validation cost endpoints are `/api/v1/cost/scenarios`, `/api/v1/cost/validation-summary`, `/api/v1/cost/simulate`, and `/api/v1/validation/residual-risk` (with `/api/v1/cost/residual-risk` retained as a cost-module alias). Validation review endpoints are `/api/v1/reviews/validation`, `/api/v1/reviews/validation/{transaction_id}/decision`, and `/api/v1/reviews/validation/{transaction_id}/ground-truth`.
 
 ## Operational Database
 

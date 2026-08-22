@@ -327,6 +327,7 @@ export type ValidationReviewItem = {
   reviewer_note: string | null;
   reviewed_at: string | null;
   ground_truth: null;
+  features: Record<string, string | null>;
 };
 
 export type ValidationReviewPage = {

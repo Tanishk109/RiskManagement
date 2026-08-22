@@ -100,6 +100,10 @@ class ValidationReviewService:
 
     @staticmethod
     def _public_item(row: pd.Series, review: ReviewCase | None) -> dict[str, Any]:
+        features = {
+            name: None if pd.isna(row[name]) else str(row[name])
+            for name in ("ProductCD", "card4", "card6", "C1", "C2", "C3", "C4", "C5", "D1", "D2", "D3")
+        }
         return {
             "transaction_id": str(int(row["TransactionID"])),
             "transaction_dt": int(row["TransactionDT"]),
@@ -111,6 +115,7 @@ class ValidationReviewService:
             "reviewer_note": review.reviewer_reason if review else None,
             "reviewed_at": review.reviewed_at if review else None,
             "ground_truth": None,
+            "features": features,
         }
 
     def reveal_ground_truth(self, db: Session, transaction_id: str) -> dict[str, Any]:
