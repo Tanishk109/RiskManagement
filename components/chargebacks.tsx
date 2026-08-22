@@ -15,6 +15,7 @@ import {
   ListChecks,
   LockKeyhole,
   Menu,
+  Network,
   Paperclip,
   Save,
   ShieldCheck,
@@ -191,7 +192,7 @@ export default function Chargebacks() {
         <span className="nav-label">Workspace</span><a className="suite-nav-link" href="/"><BarChart3 size={17} /><span>Overview</span></a>
         <span className="nav-label nav-label-spaced">Fraud Risk</span>
         <a className="suite-nav-link" href="/"><Gauge size={17} /><span>Risk Check</span></a><a className="suite-nav-link" href="/"><TableProperties size={17} /><span>Transactions</span></a><a className="suite-nav-link" href="/"><ListChecks size={17} /><span>Review Queue</span></a><a className="suite-nav-link" href="/"><SlidersHorizontal size={17} /><span>Cost Lab</span></a>
-        <span className="nav-label nav-label-spaced">Loss prevention</span><a className="suite-nav-link active" href="/chargebacks"><FileText size={17} /><span>Chargebacks</span></a><a className="suite-nav-link" href="/fraud-pulse"><Activity size={17} /><span>Fraud Pulse</span></a>
+        <span className="nav-label nav-label-spaced">Loss prevention</span><a className="suite-nav-link active" href="/chargebacks"><FileText size={17} /><span>Chargebacks</span></a><a className="suite-nav-link" href="/fraud-pulse"><Activity size={17} /><span>Fraud Pulse</span></a><a className="suite-nav-link" href="/abuse-rings"><Network size={17} /><span>Abuse Rings</span></a>
       </nav>
       <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>No automatic submission</strong><span>Every draft requires merchant review and explicit approval before export.</span></div></div>
     </aside>

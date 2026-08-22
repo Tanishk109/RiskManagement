@@ -191,3 +191,28 @@ test("Fraud Pulse exposes baseline controls, honest states, and no fake signal",
   assert.match(source, /Held-out test sealed/);
   assert.doesNotMatch(source, /SIMULATED TEST SIGNAL|confirmed fraud attack|new classifier trained/i);
 });
+
+test("Abuse Rings route renders conservative shared-attribute linkage", async () => {
+  const app = await worker();
+  const response = await app.fetch(new Request("http://localhost/abuse-rings", { headers: { accept: "text/html" } }), env, ctx);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Abuse-Ring Sentinel/i);
+  assert.match(html, /suspicious shared-attribute clusters/i);
+  assert.match(html, /Not evaluated yet/i);
+  assert.match(html, /NETWORKX · NO NEO4J/i);
+  assert.match(html, /No graph fabricated/i);
+});
+
+test("Abuse Rings offers real validation search and avoids identity invention", async () => {
+  const source = await readFile(new URL("../components/abuse-rings.tsx", import.meta.url), "utf8");
+  assert.match(source, /Analyze Validation Links/);
+  assert.match(source, /Enter validation TransactionID/);
+  assert.match(source, /Suspicious linked clusters/);
+  assert.match(source, /SHARES ATTRIBUTE/);
+  assert.match(source, /card4 shared network attribute/);
+  assert.match(source, /dataset-provided device-info attribute/);
+  assert.match(source, /not confirmed fraud rings/i);
+  assert.match(source, /never renames these fields as card numbers, accounts, customers, or real-world identities/i);
+  assert.doesNotMatch(source, /confirmed abuse ring|same customer|same card number|fraudster identity/i);
+});

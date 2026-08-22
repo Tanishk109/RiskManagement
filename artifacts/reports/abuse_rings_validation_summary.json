@@ -1,0 +1,29 @@
+{
+  "status": "validation_linkage_analysis_complete",
+  "evaluation_status": "Not evaluated yet",
+  "source": "IEEE-CIS chronological validation attributes joined to frozen CatBoost validation probabilities",
+  "model_version": "catboost-validation-v1",
+  "graph_runtime": "NetworkX 3.6.1",
+  "held_out_test_accessed": false,
+  "label_columns_accessed": false,
+  "confirmed_fraud_ring_claimed": false,
+  "configuration": {
+    "min_attribute_degree": 2,
+    "max_attribute_degree": 50,
+    "minimum_cluster_transactions": 2,
+    "minimum_high_risk_transactions": 1,
+    "minimum_high_risk_share": 0.25,
+    "review_threshold": 0.175,
+    "max_clusters_returned": 25
+  },
+  "graph": {
+    "transaction_rows_considered": 88581,
+    "linked_transaction_nodes": 4337,
+    "shared_attribute_nodes": 519,
+    "edge_count": 4615,
+    "connected_components": 465,
+    "suspicious_linked_components": 83,
+    "suppressed_over_common_attribute_values": 63
+  },
+  "interpretation": "Configuration-dependent suspicious linked components for human investigation; not confirmed fraud rings, common ownership, or identities."
+}

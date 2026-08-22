@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import models  # noqa: F401
 from .config import get_settings
 from .routers import (
+    abuse_rings,
     chargebacks,
     cost,
     evidence,
@@ -44,3 +45,4 @@ app.include_router(scoring.router)
 app.include_router(cost.router)
 app.include_router(chargebacks.router)
 app.include_router(fraud_pulse.router)
+app.include_router(abuse_rings.router)

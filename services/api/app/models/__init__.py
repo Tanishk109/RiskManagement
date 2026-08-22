@@ -1,3 +1,4 @@
+from .abuse_rings import AbuseClusterRecord, AbuseGraphRun
 from .chargebacks import ChargebackCase, ChargebackDraft, ChargebackEvidence
 from .fraud_pulse import FraudPulseAlert, FraudPulseRun
 from .risk import (
@@ -12,6 +13,8 @@ from .risk import (
 )
 
 __all__ = [
+    "AbuseClusterRecord",
+    "AbuseGraphRun",
     "ChargebackCase",
     "ChargebackDraft",
     "ChargebackEvidence",
