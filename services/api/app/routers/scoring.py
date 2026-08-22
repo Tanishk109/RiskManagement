@@ -3,25 +3,42 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
-from ..database import get_db
-from ..schemas.risk import ScoreRequest, ScoreResponse
+from ..schemas.risk import (
+    BatchScoreRequest,
+    BatchScoreResponse,
+    ScoreRequest,
+    ScoreResponse,
+)
 from ..services.artifacts import ArtifactUnavailable
-from ..services.scoring import score_transaction
+from ..services.validation_scoring import (
+    ValidationScoringService,
+    get_validation_scoring_service,
+)
 
 router = APIRouter(prefix="/api/v1/score", tags=["scoring"])
+ScoringServiceDependency = Annotated[
+    ValidationScoringService, Depends(get_validation_scoring_service)
+]
 
 
 @router.post("", response_model=ScoreResponse)
-def score(payload: ScoreRequest, db: Annotated[Session, Depends(get_db)]) -> ScoreResponse:
+def score(payload: ScoreRequest, service: ScoringServiceDependency) -> ScoreResponse:
     try:
-        return score_transaction(payload, db)
+        return service.score(payload)
     except ArtifactUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except IntegrityError as exc:
-        db.rollback()
-        raise HTTPException(status_code=409, detail="transaction_id already exists") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/batch", response_model=BatchScoreResponse)
+def score_batch(
+    payload: BatchScoreRequest, service: ScoringServiceDependency
+) -> BatchScoreResponse:
+    try:
+        return service.score_batch(payload)
+    except ArtifactUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

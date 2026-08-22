@@ -1,5 +1,103 @@
 export type Decision = "APPROVE" | "REVIEW" | "BLOCK";
 
+export type RiskFeatureName =
+  | "TransactionAmt"
+  | "ProductCD"
+  | "card4"
+  | "card6"
+  | "P_emaildomain"
+  | "C1"
+  | "C2"
+  | "C3"
+  | "C4"
+  | "C5"
+  | "D1"
+  | "D2"
+  | "D3";
+
+export type RiskFeaturePayload = Record<RiskFeatureName, string | number | null>;
+
+export type RiskScoreResponse = {
+  fraud_probability: number;
+  risk_score: number;
+  decision: Decision;
+  rules_triggered: string[];
+  top_factors: [];
+  model_version: string;
+  threshold_config_id: string;
+  threshold_configuration: {
+    id: string;
+    status: string;
+    selection_split: "validation";
+    scenario: string;
+    review_threshold: number;
+    block_threshold: number;
+    provisional: true;
+  };
+  feature_schema: RiskFeatureName[];
+  held_out_test_accessed: false;
+};
+
+export type ValidationScoringTransaction = {
+  status: string;
+  split: "validation";
+  held_out_test_status: "sealed";
+  transaction_id: string;
+  transaction_dt: number;
+  features: RiskFeaturePayload;
+  ground_truth_revealed: false;
+  note: string;
+};
+
+export type ValidationRiskCheckCases = {
+  status: string;
+  split: "validation";
+  held_out_test_status: "sealed";
+  ground_truth_hidden: true;
+  cases: Array<{
+    case_type: string;
+    label: string;
+    description: string;
+    transaction_id: string;
+    transaction_amount: number;
+  }>;
+};
+
+export type ValidationRiskGroundTruth = {
+  transaction_id: string;
+  split: "validation";
+  actual_label: 0 | 1;
+  ground_truth: "FRAUD" | "LEGITIMATE";
+  note: string;
+};
+
+export type BatchScoreResponse = {
+  summary: {
+    rows_received: number;
+    rows_processed: number;
+    approved: number;
+    reviewed: number;
+    blocked: number;
+    invalid_rows: number;
+  };
+  results: Array<{
+    row: number;
+    transaction_id: string;
+    fraud_probability: number;
+    decision: Decision;
+  }>;
+  invalid_rows: Array<{
+    row: number;
+    transaction_id: string | null;
+    errors: string[];
+  }>;
+  model_version: string;
+  threshold_configuration: RiskScoreResponse["threshold_configuration"];
+  feature_schema: RiskFeatureName[];
+  upload_persisted: false;
+  held_out_test_accessed: false;
+};
+
 export type CostAssumptions = {
   currency: string;
   fraud_loss_fraction: number;

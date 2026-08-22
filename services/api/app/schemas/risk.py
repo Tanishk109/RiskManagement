@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -45,8 +45,10 @@ class TransactionList(BaseModel):
 
 
 class ScoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     transaction_id: str | None = Field(default=None, max_length=80)
-    features: dict[str, str | float | int | bool | None]
+    features: dict[str, Any]
     persist: bool = False
 
     @model_validator(mode="after")
@@ -59,12 +61,55 @@ class ScoreRequest(BaseModel):
 
 
 class ScoreResponse(BaseModel):
+    fraud_probability: float = Field(ge=0, le=1)
     risk_score: float
     decision: Decision
     rules_triggered: list[str]
     top_factors: list[Factor]
     model_version: str
     threshold_config_id: str
+    threshold_configuration: dict[str, str | float | bool]
+    feature_schema: list[str]
+    held_out_test_accessed: Literal[False]
+
+
+class BatchScoreRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    csv_content: str = Field(min_length=1)
+
+
+class BatchScoreItem(BaseModel):
+    row: int
+    transaction_id: str
+    fraud_probability: float = Field(ge=0, le=1)
+    decision: Decision
+
+
+class BatchInvalidRow(BaseModel):
+    row: int
+    transaction_id: str | None = None
+    errors: list[str]
+
+
+class BatchScoreSummary(BaseModel):
+    rows_received: int
+    rows_processed: int
+    approved: int
+    reviewed: int
+    blocked: int
+    invalid_rows: int
+
+
+class BatchScoreResponse(BaseModel):
+    summary: BatchScoreSummary
+    results: list[BatchScoreItem]
+    invalid_rows: list[BatchInvalidRow]
+    model_version: str
+    threshold_configuration: dict[str, str | float | bool]
+    feature_schema: list[str]
+    upload_persisted: Literal[False]
+    held_out_test_accessed: Literal[False]
 
 
 class ReviewOut(BaseModel):

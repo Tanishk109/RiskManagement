@@ -23,10 +23,14 @@ services:
       DATABASE_URL: postgresql+psycopg://merchantshield:merchantshield@postgres:5432/merchantshield
       MODEL_PATH: /workspace/artifacts/models/model.joblib
       MODEL_METADATA_PATH: /workspace/artifacts/models/model_metadata.json
+      CATBOOST_MODEL_PATH: /workspace/artifacts/models/catboost_candidate.cbm
+      CATBOOST_METADATA_PATH: /workspace/artifacts/models/catboost_candidate_metadata.json
+      VALIDATION_OPERATING_CONFIG_PATH: /workspace/artifacts/models/validation_operating_config.json
+      VALIDATION_DATA_PATH: /workspace/data/processed/ieee-cis/validation.parquet
       METRICS_PATH: /workspace/artifacts/metrics/final_test_metrics.json
       PREDICTIONS_PATH: /workspace/artifacts/metrics/final_test_predictions.csv
       RULES_PATH: /workspace/rules/merchant_rules.yaml
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3002
     ports:
       - "8000:8000"
     depends_on:
@@ -34,6 +38,7 @@ services:
         condition: service_healthy
     volumes:
       - ./artifacts:/workspace/artifacts:ro
+      - ./data/processed:/workspace/data/processed:ro
       - ./rules:/workspace/rules:ro
 
   web:

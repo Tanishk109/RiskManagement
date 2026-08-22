@@ -25,6 +25,7 @@ class Settings(BaseModel):
     baseline_metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/baseline_validation.json"
     catboost_metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/catboost_validation.json"
     catboost_metadata_path: Path = REPOSITORY_ROOT / "artifacts/models/catboost_candidate_metadata.json"
+    catboost_model_path: Path = REPOSITORY_ROOT / "artifacts/models/catboost_candidate.cbm"
     experiments_path: Path = REPOSITORY_ROOT / "artifacts/metrics/experiments.csv"
     feature_importance_path: Path = REPOSITORY_ROOT / "artifacts/reports/catboost_feature_importance.csv"
     baseline_validation_predictions_path: Path = (
@@ -41,7 +42,11 @@ class Settings(BaseModel):
     )
     merchant_scenarios_path: Path = REPOSITORY_ROOT / "ml/configs/merchant_scenarios.yaml"
     cors_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://localhost:3001"]
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+        ]
     )
 
 
@@ -67,7 +72,7 @@ def get_settings() -> Settings:
     origins = [
         item.strip()
         for item in os.getenv(
-            "CORS_ORIGINS", "http://localhost:3000,http://localhost:3001"
+            "CORS_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:3002"
         ).split(",")
         if item.strip()
     ]
@@ -84,6 +89,7 @@ def get_settings() -> Settings:
         baseline_metrics_path=_path_from_env("BASELINE_METRICS_PATH", defaults.baseline_metrics_path),
         catboost_metrics_path=_path_from_env("CATBOOST_METRICS_PATH", defaults.catboost_metrics_path),
         catboost_metadata_path=_path_from_env("CATBOOST_METADATA_PATH", defaults.catboost_metadata_path),
+        catboost_model_path=_path_from_env("CATBOOST_MODEL_PATH", defaults.catboost_model_path),
         experiments_path=_path_from_env("EXPERIMENTS_PATH", defaults.experiments_path),
         feature_importance_path=_path_from_env(
             "FEATURE_IMPORTANCE_PATH", defaults.feature_importance_path

@@ -13,7 +13,7 @@ const env = {
 };
 const ctx = { waitUntil() {}, passThroughOnException() {} };
 
-test("server-renders the honest four-module MerchantShield surface", async () => {
+test("server-renders the honest five-module MerchantShield surface", async () => {
   const app = await worker();
   const response = await app.fetch(new Request("http://localhost/", { headers: { accept: "text/html" } }), env, ctx);
   assert.equal(response.status, 200);
@@ -23,11 +23,57 @@ test("server-renders the honest four-module MerchantShield surface", async () =>
   assert.match(html, /Cost-Aware Fraud/);
   assert.match(html, /Loading project evidence/);
   assert.match(html, /Overview/);
+  assert.match(html, /Risk Check/);
   assert.match(html, /Transactions/);
   assert.match(html, /Review Queue/);
   assert.match(html, /Cost Lab/);
   assert.match(html, /Held-out test sealed/);
   assert.doesNotMatch(html, /Abuse ring sentinel|Fraud pulse|AI analyst|Live transactions|₹5\.80L|Fraud-XGB-v3\.2/);
+});
+
+test("Risk Check exposes all requested input modes and the exact frozen schema", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const riskCheck = await readFile(new URL("../components/risk-check.tsx", import.meta.url), "utf8");
+  assert.match(page, /Risk Check/);
+  assert.match(page, /active === "risk"/);
+  assert.match(riskCheck, /Single Transaction/);
+  assert.match(riskCheck, /Load Validation Transaction/);
+  assert.match(riskCheck, /Batch CSV Upload/);
+  for (const feature of ["TransactionAmt", "ProductCD", "card4", "card6", "P_emaildomain", "C1", "C2", "C3", "C4", "C5", "D1", "D2", "D3"]) {
+    assert.match(riskCheck, new RegExp(`"${feature}"`));
+  }
+  assert.match(riskCheck, /Run Risk Check/);
+  assert.match(riskCheck, /\/api\/v1\/score/);
+});
+
+test("validation loading is label-safe and ground truth requires an explicit reveal", async () => {
+  const riskCheck = await readFile(new URL("../components/risk-check.tsx", import.meta.url), "utf8");
+  assert.match(riskCheck, /Ground truth stays out of the response/);
+  assert.match(riskCheck, /Ground truth hidden/);
+  assert.match(riskCheck, /Reveal Ground Truth/);
+  assert.match(riskCheck, /result && loadedTransaction/);
+  assert.match(riskCheck, /ground-truth/);
+  assert.match(riskCheck, /This label was not a scoring input/);
+});
+
+test("batch upload validates limits, supports export, and never claims persistence", async () => {
+  const riskCheck = await readFile(new URL("../components/risk-check.tsx", import.meta.url), "utf8");
+  assert.match(riskCheck, /Maximum 1 MB/);
+  assert.match(riskCheck, /1,000 data rows/);
+  assert.match(riskCheck, /isFraud are forbidden/);
+  assert.match(riskCheck, /not stored permanently/);
+  assert.match(riskCheck, /Export scored CSV/);
+  assert.match(riskCheck, /rows_processed/);
+});
+
+test("anonymized fields are disclosed without invented explanations", async () => {
+  const riskCheck = await readFile(new URL("../components/risk-check.tsx", import.meta.url), "utf8");
+  assert.match(riskCheck, /Advanced IEEE-CIS Fields/);
+  assert.match(riskCheck, /anonymized competition features/);
+  assert.match(riskCheck, /does not assign or invent semantic meanings/);
+  assert.match(riskCheck, /No explanation is shown/);
+  assert.match(riskCheck, /held-out test sealed/i);
+  assert.doesNotMatch(riskCheck, /C1 — .*velocity|C2 — .*chargeback|D1 — .*account age/i);
 });
 
 test("bootstrap adapter exposes null evidence instead of fake metrics", async () => {

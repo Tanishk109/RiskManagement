@@ -176,6 +176,41 @@ class InterestingCasesResponse(BaseModel):
     cases: list[InterestingCase]
 
 
+class ValidationScoringTransaction(BaseModel):
+    status: str
+    split: Literal["validation"]
+    held_out_test_status: Literal["sealed"]
+    transaction_id: str
+    transaction_dt: int
+    features: dict[str, str | float | int | None]
+    ground_truth_revealed: Literal[False]
+    note: str
+
+
+class ValidationGroundTruth(BaseModel):
+    transaction_id: str
+    split: Literal["validation"]
+    actual_label: Literal[0, 1]
+    ground_truth: Literal["FRAUD", "LEGITIMATE"]
+    note: str
+
+
+class RiskCheckCase(BaseModel):
+    case_type: str
+    label: str
+    description: str
+    transaction_id: str
+    transaction_amount: float
+
+
+class RiskCheckCasesResponse(BaseModel):
+    status: str
+    split: Literal["validation"]
+    held_out_test_status: Literal["sealed"]
+    ground_truth_hidden: Literal[True]
+    cases: list[RiskCheckCase]
+
+
 class ValidationCostSimulationRequest(BaseModel):
     scenario_id: str
     review_threshold: float = Field(ge=0, le=1)

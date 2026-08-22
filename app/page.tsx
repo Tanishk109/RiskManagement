@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import RiskCheck from "../components/risk-check";
 import {
   Bar,
   BarChart,
@@ -57,10 +58,11 @@ import type {
   ValidationTransactionPage,
 } from "../lib/api-types";
 
-type Section = "overview" | "transactions" | "reviews" | "cost";
+type Section = "overview" | "risk" | "transactions" | "reviews" | "cost";
 
 const sections: Array<{ id: Section; label: string; icon: typeof BarChart3 }> = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "risk", label: "Risk Check", icon: ShieldCheck },
   { id: "transactions", label: "Transactions", icon: TableProperties },
   { id: "reviews", label: "Review Queue", icon: ListChecks },
   { id: "cost", label: "Cost Lab", icon: SlidersHorizontal },
@@ -711,6 +713,8 @@ export default function Home() {
               )}
             </section>
           )}
+
+          {active === "risk" && <RiskCheck />}
 
           {active === "transactions" && (
             <section className="module-page transactions-page">

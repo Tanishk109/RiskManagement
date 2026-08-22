@@ -13,6 +13,7 @@ from sklearn.metrics import precision_recall_curve
 
 from ..config import get_settings
 from .artifacts import ArtifactUnavailable
+from .validation_scoring import FEATURE_SCHEMA
 
 ValidationFilter = Literal[
     "all",
@@ -26,19 +27,6 @@ ValidationFilter = Literal[
     "high_value",
 ]
 
-SELECTED_FEATURES = (
-    "ProductCD",
-    "card4",
-    "card6",
-    "C1",
-    "C2",
-    "C3",
-    "C4",
-    "C5",
-    "D1",
-    "D2",
-    "D3",
-)
 HIGH_VALUE_THRESHOLD = 500.0
 
 
@@ -210,8 +198,7 @@ class ProjectArtifactService:
             "TransactionID",
             "TransactionDT",
             "isFraud",
-            "TransactionAmt",
-            *SELECTED_FEATURES,
+            *FEATURE_SCHEMA,
         ]
         try:
             predictions = pd.read_parquet(self.paths.selected_predictions, columns=prediction_columns)
@@ -539,7 +526,114 @@ class ProjectArtifactService:
             "scenario_id": scenario_id,
             "scenario_name": scenario_name,
             "estimated_decision_cost": estimated_decision_cost,
-            "features": {feature: _native(row[feature]) for feature in SELECTED_FEATURES},
+            "features": {feature: _native(row[feature]) for feature in FEATURE_SCHEMA},
+        }
+
+    def validation_transaction_for_scoring(self, transaction_id: str) -> dict[str, Any]:
+        normalized = transaction_id.strip()
+        if not normalized:
+            raise LookupError("Validation transaction was not found")
+        matched = self.validation_frame.loc[
+            self.validation_frame["TransactionID"].astype(str).str.replace(r"\.0$", "", regex=True)
+            == normalized
+        ]
+        if len(matched) != 1:
+            raise LookupError("Validation transaction was not found")
+        row = matched.iloc[0]
+        return {
+            "status": "validation_demo",
+            "split": "validation",
+            "held_out_test_status": "sealed",
+            "transaction_id": str(int(row["TransactionID"])),
+            "transaction_dt": int(row["TransactionDT"]),
+            "features": {feature: _native(row[feature]) for feature in FEATURE_SCHEMA},
+            "ground_truth_revealed": False,
+            "note": "Ground truth is withheld until explicitly revealed.",
+        }
+
+    def validation_ground_truth(self, transaction_id: str) -> dict[str, Any]:
+        normalized = transaction_id.strip()
+        matched = self.validation_frame.loc[
+            self.validation_frame["TransactionID"].astype(str).str.replace(r"\.0$", "", regex=True)
+            == normalized
+        ]
+        if len(matched) != 1:
+            raise LookupError("Validation transaction was not found")
+        row = matched.iloc[0]
+        actual_label = int(row["actual_label"])
+        return {
+            "transaction_id": str(int(row["TransactionID"])),
+            "split": "validation",
+            "actual_label": actual_label,
+            "ground_truth": "FRAUD" if actual_label else "LEGITIMATE",
+            "note": "Explicitly revealed validation label. The held-out test remains sealed.",
+        }
+
+    def risk_check_cases(self) -> dict[str, Any]:
+        frame = self.validation_frame
+        operating = self.operating_config
+        if operating is None:
+            raise ArtifactUnavailable("Provisional validation thresholds are not available")
+        review = float(operating["review_threshold"])
+        block = float(operating["block_threshold"])
+        candidates = (
+            (
+                "highest_amount",
+                "Highest transaction amount",
+                "A high-value validation row.",
+                frame.sort_values(["TransactionAmt", "TransactionID"], ascending=[False, True]),
+            ),
+            (
+                "near_review_threshold",
+                "Near the review boundary",
+                "A score close to the provisional review threshold.",
+                frame.assign(distance=(frame["fraud_probability"] - review).abs()).sort_values(
+                    ["distance", "TransactionID"]
+                ),
+            ),
+            (
+                "near_block_threshold",
+                "Near the block boundary",
+                "A score close to the provisional block threshold.",
+                frame.assign(distance=(frame["fraud_probability"] - block).abs()).sort_values(
+                    ["distance", "TransactionID"]
+                ),
+            ),
+            (
+                "categorical_missingness",
+                "Missing categorical values",
+                "A validation row that exercises training-time missing-value handling.",
+                frame.assign(
+                    missing_count=frame[["ProductCD", "card4", "card6", "P_emaildomain"]]
+                    .isna()
+                    .sum(axis=1)
+                ).sort_values(["missing_count", "TransactionID"], ascending=[False, True]),
+            ),
+        )
+        used: set[int] = set()
+        cases = []
+        for case_type, label, description, ordered in candidates:
+            selected = next(
+                (row for _, row in ordered.iterrows() if int(row["TransactionID"]) not in used),
+                ordered.iloc[0],
+            )
+            transaction_id = int(selected["TransactionID"])
+            used.add(transaction_id)
+            cases.append(
+                {
+                    "case_type": case_type,
+                    "label": label,
+                    "description": description,
+                    "transaction_id": str(transaction_id),
+                    "transaction_amount": float(selected["TransactionAmt"]),
+                }
+            )
+        return {
+            "status": "validation_demo",
+            "split": "validation",
+            "held_out_test_status": "sealed",
+            "ground_truth_hidden": True,
+            "cases": cases,
         }
 
     @staticmethod

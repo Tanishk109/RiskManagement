@@ -31,6 +31,7 @@ def artifact_service(tmp_path: Path) -> ProjectArtifactService:
     selected_predictions = tmp_path / "selected_predictions.parquet"
     validation = tmp_path / "validation.parquet"
     threshold = tmp_path / "threshold.json"
+    operating = tmp_path / "operating.json"
     final = tmp_path / "final.json"
 
     logistic_record = {
@@ -130,6 +131,28 @@ def artifact_service(tmp_path: Path) -> ProjectArtifactService:
             },
         },
     )
+    write_json(
+        operating,
+        {
+            "status": "provisional_validation_config",
+            "selection_split": "validation",
+            "held_out_test_accessed": False,
+            "not_final": True,
+            "scenario": "fixture",
+            "scenario_name": "Fixture scenario",
+            "review_threshold": 0.4,
+            "block_threshold": 0.8,
+            "cost_assumptions": {
+                "fraud_loss_fraction": 0.85,
+                "chargeback_fixed_cost": 50,
+                "legitimate_margin_rate": 0.18,
+                "false_positive_fixed_cost": 20,
+                "manual_review_cost": 25,
+                "review_fraud_catch_rate": 0.9,
+                "review_legitimate_approval_rate": 0.98,
+            },
+        },
+    )
     pd.DataFrame(
         [
             {key: logistic_record[key] for key in ("experiment_id", "average_precision", "roc_auc", "precision", "recall", "f1")},
@@ -163,6 +186,7 @@ def artifact_service(tmp_path: Path) -> ProjectArtifactService:
             "ProductCD": ["W", "C", "S", "W"],
             "card4": ["visa", "visa", "discover", "mastercard"],
             "card6": ["debit", "credit", "credit", "debit"],
+            "P_emaildomain": ["gmail.com", None, "yahoo.com", "gmail.com"],
             "C1": [1, 2, 3, 4],
             "C2": [1, 2, 3, 4],
             "C3": [1, 2, 3, 4],
@@ -188,6 +212,7 @@ def artifact_service(tmp_path: Path) -> ProjectArtifactService:
             validation_data=validation,
             threshold_analysis=threshold,
             final_metrics=final,
+            operating_config=operating,
         )
     )
 
@@ -205,7 +230,7 @@ def test_artifact_parsing_and_not_evaluated_states(artifact_service: ProjectArti
     assert status["dataset"]["fraud_prevalence"] == 0.2
     assert status["split"]["strategy"] == "chronological"
     assert status["threshold_analysis"]["status"] == "not_evaluated"
-    assert status["operational_thresholds"]["status"] == "not_evaluated"
+    assert status["operational_thresholds"]["status"] == "provisional_validation_config"
     assert status["final_test"] == {"status": "not_evaluated", "test_status": "sealed"}
 
 
@@ -247,6 +272,27 @@ def test_interesting_cases_are_selected_programmatically(artifact_service: Proje
     assert cases["highest_confidence_legitimate"]["transaction_id"] == "101"
 
 
+def test_risk_check_loader_hides_ground_truth_until_explicit_reveal(
+    artifact_service: ProjectArtifactService,
+):
+    loaded = artifact_service.validation_transaction_for_scoring("102")
+    assert loaded["transaction_id"] == "102"
+    assert loaded["features"]["P_emaildomain"] is None
+    assert "actual_label" not in loaded
+    assert loaded["ground_truth_revealed"] is False
+
+    revealed = artifact_service.validation_ground_truth("102")
+    assert revealed["actual_label"] == 1
+    assert revealed["ground_truth"] == "FRAUD"
+
+
+def test_risk_check_cases_do_not_leak_labels(artifact_service: ProjectArtifactService):
+    result = artifact_service.risk_check_cases()
+    assert result["ground_truth_hidden"] is True
+    assert len(result["cases"]) == 4
+    assert all("actual_label" not in case for case in result["cases"])
+
+
 def test_missing_artifact_is_reported(tmp_path: Path, artifact_service: ProjectArtifactService):
     missing = ProjectArtifactService(
         ArtifactPaths(**{**artifact_service.paths.__dict__, "eda_summary": tmp_path / "missing.json"})
@@ -278,8 +324,14 @@ def test_project_evidence_endpoints(artifact_client):
         "/api/v1/validation/transactions", params={"filter": "false_negative"}
     )
     interesting = artifact_client.get("/api/v1/validation/interesting-cases")
+    risk_cases = artifact_client.get("/api/v1/validation/risk-check-cases")
+    loaded = artifact_client.get("/api/v1/validation/transactions/102")
+    revealed = artifact_client.get("/api/v1/validation/transactions/102/ground-truth")
     assert status.status_code == comparison.status_code == importance.status_code == 200
     assert transactions.status_code == interesting.status_code == 200
+    assert risk_cases.status_code == loaded.status_code == revealed.status_code == 200
     assert status.json()["final_test"]["test_status"] == "sealed"
     assert comparison.json()["status"] == "validation_results"
     assert transactions.json()["items"][0]["outcome"] == "FALSE_NEGATIVE"
+    assert "actual_label" not in loaded.json()
+    assert revealed.json()["actual_label"] == 1

@@ -9,6 +9,9 @@ from ..schemas.project import (
     InterestingCasesResponse,
     ModelComparisonResponse,
     ProjectStatusResponse,
+    RiskCheckCasesResponse,
+    ValidationGroundTruth,
+    ValidationScoringTransaction,
     ValidationTransactionPage,
 )
 from ..services.artifacts import ArtifactUnavailable
@@ -87,6 +90,44 @@ def interesting_cases(service: ArtifactServiceDependency) -> dict[str, object]:
         return service.interesting_cases()
     except ArtifactUnavailable as exc:
         raise _unavailable(exc) from exc
+
+
+@router.get("/validation/risk-check-cases", response_model=RiskCheckCasesResponse)
+def risk_check_cases(service: ArtifactServiceDependency) -> dict[str, object]:
+    try:
+        return service.risk_check_cases()
+    except ArtifactUnavailable as exc:
+        raise _unavailable(exc) from exc
+
+
+@router.get(
+    "/validation/transactions/{transaction_id}",
+    response_model=ValidationScoringTransaction,
+)
+def validation_transaction_for_scoring(
+    transaction_id: str, service: ArtifactServiceDependency
+) -> dict[str, object]:
+    try:
+        return service.validation_transaction_for_scoring(transaction_id)
+    except ArtifactUnavailable as exc:
+        raise _unavailable(exc) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get(
+    "/validation/transactions/{transaction_id}/ground-truth",
+    response_model=ValidationGroundTruth,
+)
+def validation_transaction_ground_truth(
+    transaction_id: str, service: ArtifactServiceDependency
+) -> dict[str, object]:
+    try:
+        return service.validation_ground_truth(transaction_id)
+    except ArtifactUnavailable as exc:
+        raise _unavailable(exc) from exc
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/validation/residual-risk")

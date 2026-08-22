@@ -57,9 +57,10 @@ def test_cost_simulation_requires_a_named_scenario(client):
     assert response.status_code == 422
 
 
-def test_score_requires_frozen_real_model(client):
+def test_score_requires_exact_frozen_model_schema(client):
     response = client.post("/api/v1/score", json={"features": {"TransactionAmt": 100}, "persist": False})
-    assert response.status_code == 503
+    assert response.status_code == 422
+    assert "missing fields" in response.json()["detail"]
 
 
 def test_score_rejects_ground_truth_as_feature(client):

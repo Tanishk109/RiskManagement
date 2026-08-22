@@ -32,7 +32,7 @@ IEEE-CIS labeled train files
   → validation model/feature/threshold/rule decisions
   → one final held-out test evaluation
   → FastAPI + PostgreSQL
-  → Overview / Transactions / Review Queue / Cost Lab
+  → Overview / Risk Check / Transactions / Review Queue / Cost Lab
 ```
 
 PostgreSQL is the application source of truth for model metadata, final metrics, threshold and cost configurations, selected transaction predictions, explanations, rule hits, reviews, and optional cost-simulation history. The full IEEE-CIS dataset never enters PostgreSQL. The hosted frontend shows `Not evaluated yet` when a remote FastAPI deployment is not configured with real evidence.
@@ -93,14 +93,15 @@ The initial SAGA baseline run failed to converge within 1,000 iterations for all
 
 ## Product Demo
 
-The UI contains only four main sections:
+The UI contains five main sections:
 
 - Overview: real dataset, chronological split, Logistic Regression/CatBoost validation evidence, feature importance, and failure analysis, with final results kept separate and locked.
+- Risk Check: single-transaction scoring, label-safe validation-transaction loading, and temporary exact-schema CSV scoring through the frozen CatBoost validation candidate and provisional validation thresholds. Batch files are limited to 1 MB and 1,000 data rows and are not persisted.
 - Transactions: real validation labels and scores, the model class at 0.50, provisional three-way business decisions, thresholds, selected input fields, estimated per-decision cost, backend filters, interesting cases, and visible `MODEL ERROR` flags.
 - Review Queue: real rows inside the provisional validation review band, hidden ground truth until explicit reveal, and PostgreSQL-persisted `APPROVE` / `BLOCK` reviewer decisions. Review actions do not change model artifacts or metrics.
 - Cost Lab: interactive validation-only scenario, threshold, and review-capacity controls; dynamic policy/cost comparisons; separate fraud-count detection and fraud-amount capture; residual-risk and sensitivity evidence. Every monetary output is labelled as an estimate under illustrative assumptions.
 
-When protected competition rows cannot be deployed, the public site remains in an honest unevaluated state. Synthetic manual-scoring inputs may be added later only if clearly labeled and only after a real model exists.
+When protected competition rows or the local model bundle cannot be deployed, the hosted frontend reports the unavailable evidence service instead of substituting scores. The complete Risk Check runs with the local FastAPI service and saved CatBoost candidate.
 
 ## Setup
 
@@ -137,7 +138,7 @@ Or use PostgreSQL, migrated API, and web together:
 docker compose up --build
 ```
 
-The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Validation cost endpoints are `/api/v1/cost/scenarios`, `/api/v1/cost/validation-summary`, `/api/v1/cost/simulate`, and `/api/v1/validation/residual-risk` (with `/api/v1/cost/residual-risk` retained as a cost-module alias). Validation review endpoints are `/api/v1/reviews/validation`, `/api/v1/reviews/validation/{transaction_id}/decision`, and `/api/v1/reviews/validation/{transaction_id}/ground-truth`.
+The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Risk Check uses `POST /api/v1/score`, `POST /api/v1/score/batch`, `GET /api/v1/validation/transactions/{transaction_id}`, and the explicit `/ground-truth` subresource. CSV scoring accepts the exact 13 model columns plus an optional `TransactionID`, rejects labels including `isFraud`, limits uploads to 1 MB / 1,000 data rows, and never persists the uploaded file. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Validation cost endpoints are `/api/v1/cost/scenarios`, `/api/v1/cost/validation-summary`, `/api/v1/cost/simulate`, and `/api/v1/validation/residual-risk` (with `/api/v1/cost/residual-risk` retained as a cost-module alias). Validation review endpoints are `/api/v1/reviews/validation`, `/api/v1/reviews/validation/{transaction_id}/decision`, and `/api/v1/reviews/validation/{transaction_id}/ground-truth`.
 
 ## Operational Database
 
@@ -183,7 +184,7 @@ We deliberately did not implement Kafka, Neo4j, GNNs, an LLM analyst chatbot, fr
 
 ## Future Work
 
-After the four-module loop has genuine held-out evidence, possible future work includes graph-based abuse-ring detection, stream processing, production drift detection, multi-merchant models, automated rule backtesting, analyst copilots, active learning, and real chargeback feedback. None is presented as implemented.
+After the five-module loop has genuine held-out evidence, possible future work includes graph-based abuse-ring detection, stream processing, production drift detection, multi-merchant models, automated rule backtesting, analyst copilots, active learning, and real chargeback feedback. None is presented as implemented.
 
 ## Safety and Data Governance
 
