@@ -167,3 +167,27 @@ test("Chargeback workflow accepts real input, labels files, and has no auto-subm
   assert.match(source, /No automatic submission/);
   assert.doesNotMatch(source, /win_probability|success probability|auto-submit/i);
 });
+
+test("Fraud Pulse route renders transparent monitoring without classifier claims", async () => {
+  const app = await worker();
+  const response = await app.fetch(new Request("http://localhost/fraud-pulse", { headers: { accept: "text/html" } }), env, ctx);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Fraud-Spike Detector/i);
+  assert.match(html, /not another fraud classifier/i);
+  assert.match(html, /Not evaluated yet/i);
+  assert.match(html, /Replay Validation/i);
+  assert.match(html, /Upload Transaction CSV/i);
+});
+
+test("Fraud Pulse exposes baseline controls, honest states, and no fake signal", async () => {
+  const source = await readFile(new URL("../components/fraud-pulse.tsx", import.meta.url), "utf8");
+  for (const term of ["Rolling z-score", "EWMA deviation", "Percent deviation", "Baseline windows", "WARMING_UP", "SPIKE ALERT", "Change active"]) {
+    assert.match(source, new RegExp(term));
+  }
+  assert.match(source, /Every valid row is scored by the frozen model before aggregation/);
+  assert.match(source, /isFraud and actual_label are forbidden/);
+  assert.match(source, /Uploaded files are not persisted/);
+  assert.match(source, /Held-out test sealed/);
+  assert.doesNotMatch(source, /SIMULATED TEST SIGNAL|confirmed fraud attack|new classifier trained/i);
+});

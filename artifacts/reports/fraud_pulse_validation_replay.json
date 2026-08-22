@@ -1,0 +1,55 @@
+{
+  "status": "validation_replay_complete",
+  "evaluation_status": "Not evaluated yet",
+  "detector_is_classifier": false,
+  "source": "IEEE-CIS chronological validation replay joined to frozen CatBoost validation probabilities",
+  "model_version": "catboost-validation-v1",
+  "held_out_test_accessed": false,
+  "label_columns_accessed": false,
+  "configuration": {
+    "method": "rolling_zscore",
+    "metric": "high_risk_count",
+    "window_seconds": 21600,
+    "baseline_windows": 8,
+    "sensitivity": 3.0,
+    "review_threshold": 0.175,
+    "block_threshold": 0.25
+  },
+  "replay": {
+    "rows_scored": 88581,
+    "window_count": 126,
+    "first_ready_window_index": 8,
+    "transaction_dt_start": 10438003,
+    "transaction_dt_end_exclusive": 13159603,
+    "high_risk_count": 2369,
+    "review_count": 632,
+    "block_count": 1737,
+    "high_risk_amount": 404996.405,
+    "alert_count": 3,
+    "alert_window_indices": [12, 100, 111]
+  },
+  "alerts": [
+    {
+      "window_index": 12,
+      "current_high_risk_count": 55.0,
+      "baseline_high_risk_count": 15.875,
+      "percent_deviation": 2.4645669291338583,
+      "z_score": 5.04641827495212
+    },
+    {
+      "window_index": 100,
+      "current_high_risk_count": 36.0,
+      "baseline_high_risk_count": 13.125,
+      "percent_deviation": 1.7428571428571429,
+      "z_score": 4.3145500178566705
+    },
+    {
+      "window_index": 111,
+      "current_high_risk_count": 51.0,
+      "baseline_high_risk_count": 15.125,
+      "percent_deviation": 2.371900826446281,
+      "z_score": 5.326701727313736
+    }
+  ],
+  "interpretation": "Configuration-dependent score-volume changes only; not confirmed attacks and not detector performance metrics."
+}

@@ -9,6 +9,7 @@ from .routers import (
     chargebacks,
     cost,
     evidence,
+    fraud_pulse,
     project,
     reviews,
     scoring,
@@ -42,3 +43,4 @@ app.include_router(reviews.router)
 app.include_router(scoring.router)
 app.include_router(cost.router)
 app.include_router(chargebacks.router)
+app.include_router(fraud_pulse.router)

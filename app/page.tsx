@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Activity,
   ArrowRight,
   BarChart3,
   Check,
@@ -518,6 +519,7 @@ export default function Home() {
           })}
           <span className="nav-label nav-label-spaced">Loss prevention</span>
           <a className="suite-nav-link" href="/chargebacks"><FileText size={17} /><span>Chargebacks</span></a>
+          <a className="suite-nav-link" href="/fraud-pulse"><Activity size={17} /><span>Fraud Pulse</span></a>
         </nav>
 
         <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>Defense-only evidence</strong><span>Validation is visible. Final performance stays locked until the single held-out evaluation.</span></div></div>

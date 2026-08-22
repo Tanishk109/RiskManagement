@@ -1,7 +1,7 @@
 """Add chargeback evidence responder tables.
 
 Revision ID: 0002_chargeback_evidence
-Revises: 0001_operational_schema
+Revises: 0002_review_decision_block
 Create Date: 2026-08-22
 """
 
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0002_chargeback_evidence"
-down_revision: str | None = "0001_operational_schema"
+down_revision: str | None = "0002_review_decision_block"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

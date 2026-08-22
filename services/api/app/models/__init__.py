@@ -1,4 +1,5 @@
 from .chargebacks import ChargebackCase, ChargebackDraft, ChargebackEvidence
+from .fraud_pulse import FraudPulseAlert, FraudPulseRun
 from .risk import (
     CostConfig,
     CostSimulation,
@@ -16,6 +17,8 @@ __all__ = [
     "ChargebackEvidence",
     "CostConfig",
     "CostSimulation",
+    "FraudPulseAlert",
+    "FraudPulseRun",
     "ModelRun",
     "PredictionReason",
     "ReviewCase",
