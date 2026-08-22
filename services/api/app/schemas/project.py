@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DatasetStatus(BaseModel):
@@ -145,6 +145,12 @@ class ValidationTransaction(BaseModel):
     predicted_label_at_0_5: Literal[0, 1]
     outcome: Literal["TRUE_POSITIVE", "FALSE_POSITIVE", "FALSE_NEGATIVE", "TRUE_NEGATIVE"]
     model_error: bool
+    business_decision: Literal["APPROVE", "REVIEW", "BLOCK"] | None = None
+    review_threshold: float | None = None
+    block_threshold: float | None = None
+    scenario_id: str | None = None
+    scenario_name: str | None = None
+    estimated_decision_cost: float | None = None
     features: dict[str, str | float | int | None]
 
 
@@ -168,3 +174,52 @@ class InterestingCasesResponse(BaseModel):
     status: str
     split: str
     cases: list[InterestingCase]
+
+
+class ValidationCostSimulationRequest(BaseModel):
+    scenario_id: str
+    review_threshold: float = Field(ge=0, le=1)
+    block_threshold: float = Field(ge=0, le=1)
+    review_capacity: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_threshold_order(self):
+        if self.review_threshold >= self.block_threshold:
+            raise ValueError("review_threshold must be less than block_threshold")
+        return self
+
+
+class ValidationCostResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    status: str
+    split: Literal["validation"]
+    held_out_test_status: str
+    provisional: bool
+    assumption_status: str
+    cost_output_label: str
+    scenario: dict[str, Any]
+    review_threshold: float
+    block_threshold: float
+    review_capacity: float | None
+    capacity_met: bool
+    metrics: dict[str, Any]
+    policy_comparison: list[dict[str, Any]]
+    estimated_reduction_vs_approve_all: float
+    estimated_reduction_vs_binary: float
+    lowest_cost_feasible: dict[str, Any]
+    provenance: str
+
+
+class CostScenariosResponse(BaseModel):
+    status: str
+    split: Literal["validation"]
+    held_out_test_status: str
+    assumption_status: str
+    cost_output_label: str
+    default_scenario_id: str
+    default_review_threshold: float
+    default_block_threshold: float
+    default_review_capacity: float
+    review_capacities: list[float | None]
+    scenarios: list[dict[str, Any]]

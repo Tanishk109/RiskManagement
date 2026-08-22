@@ -212,7 +212,7 @@ class ReviewCase(Base):
         CheckConstraint("status IN ('OPEN', 'DECIDED')", name="ck_review_cases_status"),
         CheckConstraint("model_decision IN ('APPROVE', 'REVIEW', 'BLOCK')", name="ck_review_cases_model_decision"),
         CheckConstraint(
-            "reviewer_decision IS NULL OR reviewer_decision IN ('APPROVE', 'DECLINE')",
+            "reviewer_decision IS NULL OR reviewer_decision IN ('APPROVE', 'BLOCK')",
             name="ck_review_cases_reviewer_decision",
         ),
     )

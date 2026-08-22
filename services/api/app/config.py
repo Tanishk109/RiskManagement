@@ -35,6 +35,11 @@ class Settings(BaseModel):
     )
     validation_data_path: Path = REPOSITORY_ROOT / "data/processed/ieee-cis/validation.parquet"
     threshold_analysis_path: Path = REPOSITORY_ROOT / "artifacts/metrics/threshold_analysis.json"
+    threshold_grid_path: Path = REPOSITORY_ROOT / "artifacts/metrics/threshold_grid.parquet"
+    validation_operating_config_path: Path = (
+        REPOSITORY_ROOT / "artifacts/models/validation_operating_config.json"
+    )
+    merchant_scenarios_path: Path = REPOSITORY_ROOT / "ml/configs/merchant_scenarios.yaml"
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:3000", "http://localhost:3001"]
     )
@@ -92,6 +97,13 @@ def get_settings() -> Settings:
         validation_data_path=_path_from_env("VALIDATION_DATA_PATH", defaults.validation_data_path),
         threshold_analysis_path=_path_from_env(
             "THRESHOLD_ANALYSIS_PATH", defaults.threshold_analysis_path
+        ),
+        threshold_grid_path=_path_from_env("THRESHOLD_GRID_PATH", defaults.threshold_grid_path),
+        validation_operating_config_path=_path_from_env(
+            "VALIDATION_OPERATING_CONFIG_PATH", defaults.validation_operating_config_path
+        ),
+        merchant_scenarios_path=_path_from_env(
+            "MERCHANT_SCENARIOS_PATH", defaults.merchant_scenarios_path
         ),
         cors_origins=origins,
     )

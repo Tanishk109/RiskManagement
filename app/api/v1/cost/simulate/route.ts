@@ -1,7 +1,8 @@
 type RequestBody = {
+  scenario_id?: string;
   review_threshold?: number;
   block_threshold?: number;
-  assumptions?: Record<string, unknown>;
+  review_capacity?: number | null;
 };
 
 function isProbability(value: unknown): value is number {
@@ -22,11 +23,11 @@ export async function POST(request: Request) {
   if (body.review_threshold >= body.block_threshold) {
     return Response.json({ error: "review_threshold must be less than block_threshold." }, { status: 422 });
   }
+  if (typeof body.scenario_id !== "string" || !body.scenario_id) {
+    return Response.json({ error: "scenario_id is required." }, { status: 422 });
+  }
 
   return Response.json({
-    evaluated: false,
-    provenance: "Not evaluated yet — cost simulation requires held-out IEEE-CIS labels, scores, and transaction amounts.",
-    current: null,
-    proposed: null,
-  });
+    detail: "The validation artifact API is not configured for this web runtime. No fallback result was fabricated.",
+  }, { status: 503 });
 }

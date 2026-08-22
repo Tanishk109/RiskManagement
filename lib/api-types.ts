@@ -49,7 +49,7 @@ export type CostOutcome = {
   total_estimated_cost: number;
 };
 
-export type CostSimulationResponse = {
+export type LegacyCostSimulationResponse = {
   evaluated: boolean;
   provenance: string;
   current: CostOutcome | null;
@@ -186,6 +186,12 @@ export type ValidationTransaction = {
   predicted_label_at_0_5: 0 | 1;
   outcome: "TRUE_POSITIVE" | "FALSE_POSITIVE" | "FALSE_NEGATIVE" | "TRUE_NEGATIVE";
   model_error: boolean;
+  business_decision: Decision | null;
+  review_threshold: number | null;
+  block_threshold: number | null;
+  scenario_id: string | null;
+  scenario_name: string | null;
+  estimated_decision_cost: number | null;
   features: Record<string, string | number | null>;
 };
 
@@ -205,4 +211,149 @@ export type InterestingCasesResponse = {
   status: string;
   split: "validation";
   cases: Array<ValidationTransaction & { case_type: string }>;
+};
+
+export type CostScenario = {
+  id: string;
+  name: string;
+  description: string;
+  assumptions: CostAssumptions;
+  validation_configuration: { review_threshold: number; block_threshold: number };
+};
+
+export type CostScenariosResponse = {
+  status: string;
+  split: "validation";
+  held_out_test_status: string;
+  assumption_status: string;
+  cost_output_label: string;
+  default_scenario_id: string;
+  default_review_threshold: number;
+  default_block_threshold: number;
+  default_review_capacity: number;
+  review_capacities: Array<number | null>;
+  scenarios: CostScenario[];
+};
+
+export type ValidationCostMetrics = {
+  currency: string;
+  transaction_count: number;
+  fraud_count: number;
+  legitimate_count: number;
+  approve_count: number;
+  review_count: number;
+  block_count: number;
+  approve_rate: number;
+  review_rate: number;
+  block_rate: number;
+  fraud_approved: number;
+  fraud_reviewed: number;
+  fraud_blocked: number;
+  legitimate_blocked: number;
+  block_precision: number;
+  block_recall: number;
+  detected_precision: number;
+  detected_fraud_recall: number;
+  false_positives: number;
+  false_negatives: number;
+  total_fraud_amount: number;
+  fraud_amount_approved: number;
+  fraud_amount_reviewed: number;
+  fraud_amount_blocked: number;
+  captured_fraud_amount: number;
+  fraud_amount_capture_rate: number;
+  approved_fraud_loss: number;
+  fraud_loss: number;
+  false_positive_cost: number;
+  manual_review_cost_total: number;
+  review_total_cost: number;
+  total_estimated_cost: number;
+};
+
+export type CostSimulationResponse = {
+  status: string;
+  split: "validation";
+  held_out_test_status: string;
+  provisional: true;
+  assumption_status: string;
+  cost_output_label: string;
+  scenario: CostScenario;
+  review_threshold: number;
+  block_threshold: number;
+  review_capacity: number | null;
+  capacity_met: boolean;
+  metrics: ValidationCostMetrics;
+  policy_comparison: Array<{ policy: string; total_estimated_cost: number }>;
+  estimated_reduction_vs_approve_all: number;
+  estimated_reduction_vs_binary: number;
+  lowest_cost_feasible: ValidationCostMetrics & { review_threshold: number; block_threshold: number };
+  provenance: string;
+  selection_reason?: string;
+  limitations?: string[];
+  sensitivity_analysis?: Array<{
+    parameter: string;
+    value: number;
+    lowest_estimated_cost: ValidationCostMetrics & { review_threshold: number; block_threshold: number };
+  }>;
+  failure_slices?: Record<string, {
+    fraud_rows: number;
+    approve: { count: number; rate: number; transaction_amount: number };
+    review: { count: number; rate: number; transaction_amount: number };
+    block: { count: number; rate: number; transaction_amount: number };
+  }>;
+  high_value_fraud?: {
+    fraud_rows: number;
+    approve: number;
+    review: number;
+    block: number;
+    highest_value_approved_fraud_examples: Array<{
+      TransactionID: string | number;
+      TransactionAmt: number;
+      fraud_probability: number;
+      ProductCD: string;
+      card4: string;
+    }>;
+  };
+};
+
+export type ValidationReviewItem = {
+  transaction_id: string;
+  transaction_dt: number;
+  transaction_amount: number;
+  fraud_probability: number;
+  business_decision: "REVIEW";
+  status: "OPEN" | "DECIDED";
+  reviewer_decision: "APPROVE" | "BLOCK" | null;
+  reviewer_note: string | null;
+  reviewed_at: string | null;
+  ground_truth: null;
+};
+
+export type ValidationReviewPage = {
+  status: string;
+  split: "validation";
+  held_out_test_status: string;
+  scenario_id: string;
+  review_threshold: number;
+  block_threshold: number;
+  order: ReviewOrder;
+  page: number;
+  page_size: number;
+  total: number;
+  page_count: number;
+  ground_truth_hidden: true;
+  items: ValidationReviewItem[];
+  provenance: string;
+};
+
+export type ReviewOrder = "highest_amount" | "highest_risk" | "fraud" | "legitimate";
+
+export type GroundTruthResponse = {
+  transaction_id: string;
+  split: "validation";
+  actual_label: 0 | 1;
+  ground_truth: "FRAUD" | "LEGITIMATE";
+  reviewer_decision: "APPROVE" | "BLOCK" | null;
+  reviewer_correct: boolean | null;
+  note: string;
 };

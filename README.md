@@ -2,7 +2,7 @@
 
 MerchantShield is a defense-only, cost-aware fraud decision engine for merchants. It converts a model risk score and validation-derived rules into one of three actions—`APPROVE`, `REVIEW`, or `BLOCK`—then records human review and measures the estimated merchant cost of that configuration.
 
-Current evidence status: the official local IEEE-CIS labeled training files have passed validation and EDA, the chronological 70/15/15 partitions are frozen, and TRAIN-fitted Logistic Regression and CatBoost candidates have been compared on VALIDATION. Identity-free CatBoost is the selected validation candidate. Final held-out and merchant-facing performance remains **Not evaluated yet**; protected rows and model bundles remain local and ignored by git.
+Current evidence status: the official local IEEE-CIS labeled training files have passed validation and EDA, the chronological 70/15/15 partitions are frozen, and TRAIN-fitted Logistic Regression and CatBoost candidates have been compared on VALIDATION. Identity-free CatBoost is the selected validation candidate, and validation-only three-way threshold/cost analysis is complete under explicitly illustrative merchant scenarios. Rules remain pending. Final held-out and merchant-facing performance remains **Not evaluated yet**; protected rows and model bundles remain local and ignored by git.
 
 ## Problem
 
@@ -85,7 +85,7 @@ For each transaction:
 - `BLOCK` legitimate traffic incurs configured lost margin plus fixed false-positive cost.
 - `REVIEW` always incurs manual review cost, then residual fraud or false-positive cost based on reviewer-effectiveness assumptions.
 
-The defaults in `ml/configs/cost_assumptions.yaml` are scenario placeholders, not industry facts. Cost Lab visually separates model-derived outcomes from merchant-configurable assumptions. Threshold search uses validation predictions only and reports the **lowest estimated cost under the currently selected merchant assumptions**, never a universal optimum.
+The scenarios in `ml/configs/merchant_scenarios.yaml` are illustrative placeholders, not industry facts. Cost Lab visually separates model-derived outcomes from merchant-configurable assumptions. Threshold search uses validation predictions only and reports the **lowest estimated cost under the currently selected merchant assumptions and review-capacity limit**, never a universal optimum.
 
 ## What Didn't Work
 
@@ -96,9 +96,9 @@ The initial SAGA baseline run failed to converge within 1,000 iterations for all
 The UI contains only four main sections:
 
 - Overview: real dataset, chronological split, Logistic Regression/CatBoost validation evidence, feature importance, and failure analysis, with final results kept separate and locked.
-- Transactions: real validation labels, scores, selected input fields, backend filters, interesting cases, and visible `MODEL ERROR` flags.
-- Review Queue: an honest locked state until operational thresholds, rules, governance, and final evaluation are frozen.
-- Cost Lab: disabled controls and no monetary claims until operational simulation is valid.
+- Transactions: real validation labels and scores, the model class at 0.50, provisional three-way business decisions, thresholds, selected input fields, estimated per-decision cost, backend filters, interesting cases, and visible `MODEL ERROR` flags.
+- Review Queue: real rows inside the provisional validation review band, hidden ground truth until explicit reveal, and PostgreSQL-persisted `APPROVE` / `BLOCK` reviewer decisions. Review actions do not change model artifacts or metrics.
+- Cost Lab: interactive validation-only scenario, threshold, and review-capacity controls; dynamic policy/cost comparisons; separate fraud-count detection and fraud-amount capture; residual-risk and sensitivity evidence. Every monetary output is labelled as an estimate under illustrative assumptions.
 
 When protected competition rows cannot be deployed, the public site remains in an honest unevaluated state. Synthetic manual-scoring inputs may be added later only if clearly labeled and only after a real model exists.
 
@@ -137,7 +137,7 @@ Or use PostgreSQL, migrated API, and web together:
 docker compose up --build
 ```
 
-The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Operational endpoints remain available for scoring, rules, reviews, and cost configuration.
+The API container applies Alembic migrations before startup. The generated OpenAPI docs are available at `http://localhost:8000/docs`. Artifact-backed dashboard endpoints are `/api/v1/project/status`, `/api/v1/model-comparison`, `/api/v1/model/feature-importance`, `/api/v1/validation/transactions`, and `/api/v1/validation/interesting-cases`. Validation cost endpoints are `/api/v1/cost/scenarios`, `/api/v1/cost/validation-summary`, `/api/v1/cost/simulate`, and `/api/v1/cost/residual-risk`. Validation review endpoints are `/api/v1/reviews/validation`, `/api/v1/reviews/validation/{transaction_id}/decision`, and `/api/v1/reviews/validation/{transaction_id}/ground-truth`.
 
 ## Operational Database
 

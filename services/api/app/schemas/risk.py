@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Decision = Literal["APPROVE", "REVIEW", "BLOCK"]
-ReviewerDecision = Literal["APPROVE", "DECLINE"]
+ReviewerDecision = Literal["APPROVE", "BLOCK"]
 
 
 class ModelInfo(BaseModel):
@@ -82,7 +82,7 @@ class ReviewOut(BaseModel):
 
 class ReviewDecisionRequest(BaseModel):
     decision: ReviewerDecision
-    reason: str = Field(min_length=3, max_length=1000)
+    reason: str | None = Field(default=None, max_length=1000)
     reviewer_id: str | None = Field(default=None, min_length=2, max_length=120)
 
 

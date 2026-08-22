@@ -29,11 +29,11 @@ def test_transaction_listing_and_detail(client, seeded_review):
 def test_review_submission_is_persisted(client, seeded_review):
     response = client.post(
         f"/api/v1/reviews/{seeded_review}/decision",
-        json={"decision": "DECLINE", "reason": "Confirmed mismatch after manual evidence review."},
+        json={"decision": "BLOCK", "reason": "Confirmed mismatch after manual evidence review."},
     )
     assert response.status_code == 200
     assert response.json()["status"] == "DECIDED"
-    assert response.json()["reviewer_decision"] == "DECLINE"
+    assert response.json()["reviewer_decision"] == "BLOCK"
     repeat = client.post(
         f"/api/v1/reviews/{seeded_review}/decision",
         json={"decision": "APPROVE", "reason": "Second decision must not replace the first."},
@@ -44,19 +44,17 @@ def test_review_submission_is_persisted(client, seeded_review):
 def test_cost_simulation_rejects_invalid_threshold_order(client):
     response = client.post(
         "/api/v1/cost/simulate",
-        json={"review_threshold": 0.8, "block_threshold": 0.4, "assumptions": {}},
+        json={"scenario_id": "moderate", "review_threshold": 0.8, "block_threshold": 0.4},
     )
     assert response.status_code == 422
 
 
-def test_cost_simulation_does_not_invent_results(client):
+def test_cost_simulation_requires_a_named_scenario(client):
     response = client.post(
         "/api/v1/cost/simulate",
-        json={"review_threshold": 0.4, "block_threshold": 0.8, "assumptions": {}},
+        json={"review_threshold": 0.4, "block_threshold": 0.8},
     )
-    assert response.status_code == 200
-    assert response.json()["evaluated"] is False
-    assert response.json()["proposed"] is None
+    assert response.status_code == 422
 
 
 def test_score_requires_frozen_real_model(client):

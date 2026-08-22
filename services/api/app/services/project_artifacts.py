@@ -56,6 +56,9 @@ class ArtifactPaths:
     validation_data: Path
     threshold_analysis: Path
     final_metrics: Path
+    threshold_grid: Path | None = None
+    operating_config: Path | None = None
+    merchant_scenarios: Path | None = None
 
 
 def configured_artifact_paths() -> ArtifactPaths:
@@ -73,6 +76,9 @@ def configured_artifact_paths() -> ArtifactPaths:
         validation_data=settings.validation_data_path,
         threshold_analysis=settings.threshold_analysis_path,
         final_metrics=settings.metrics_path,
+        threshold_grid=settings.threshold_grid_path,
+        operating_config=settings.validation_operating_config_path,
+        merchant_scenarios=settings.merchant_scenarios_path,
     )
 
 
@@ -158,6 +164,19 @@ class ProjectArtifactService:
         if not 0 <= threshold <= 1:
             raise ArtifactUnavailable("Selected candidate threshold is outside [0, 1]")
         return threshold
+
+    @cached_property
+    def operating_config(self) -> dict[str, Any] | None:
+        if self.paths.operating_config is None or not self.paths.operating_config.is_file():
+            return None
+        config = _read_json(self.paths.operating_config)
+        if (
+            config.get("selection_split") != "validation"
+            or config.get("held_out_test_accessed") is not False
+            or config.get("not_final") is not True
+        ):
+            raise ArtifactUnavailable("Validation operating configuration failed provenance checks")
+        return config
 
     @cached_property
     def experiments(self) -> pd.DataFrame:
@@ -278,7 +297,13 @@ class ProjectArtifactService:
             },
             "threshold_analysis": {"status": threshold_status},
             "rules": {"status": "pending"},
-            "operational_thresholds": {"status": "locked"},
+            "operational_thresholds": {
+                "status": (
+                    "provisional_validation_config"
+                    if self.operating_config is not None
+                    else "not_evaluated"
+                )
+            },
             "final_test": {"status": final_status, "test_status": "sealed"},
         }
 
@@ -473,6 +498,32 @@ class ProjectArtifactService:
 
     def _transaction_record(self, row: pd.Series) -> dict[str, Any]:
         outcome = str(row["outcome"])
+        operating = self.operating_config
+        business_decision = None
+        estimated_decision_cost = None
+        review_threshold = None
+        block_threshold = None
+        scenario_id = None
+        scenario_name = None
+        if operating is not None:
+            review_threshold = float(operating["review_threshold"])
+            block_threshold = float(operating["block_threshold"])
+            scenario_id = str(operating["scenario"])
+            scenario_name = str(operating["scenario_name"])
+            probability = float(row["fraud_probability"])
+            business_decision = (
+                "BLOCK"
+                if probability >= block_threshold
+                else "REVIEW"
+                if probability >= review_threshold
+                else "APPROVE"
+            )
+            estimated_decision_cost = self._estimated_row_cost(
+                actual_label=int(row["actual_label"]),
+                amount=float(row["TransactionAmt"]),
+                decision=business_decision,
+                assumptions=dict(operating["cost_assumptions"]),
+            )
         return {
             "transaction_id": str(int(row["TransactionID"])),
             "transaction_dt": int(row["TransactionDT"]),
@@ -482,8 +533,38 @@ class ProjectArtifactService:
             "predicted_label_at_0_5": int(row["predicted_label_at_0_5"]),
             "outcome": outcome,
             "model_error": outcome in {"FALSE_POSITIVE", "FALSE_NEGATIVE"},
+            "business_decision": business_decision,
+            "review_threshold": review_threshold,
+            "block_threshold": block_threshold,
+            "scenario_id": scenario_id,
+            "scenario_name": scenario_name,
+            "estimated_decision_cost": estimated_decision_cost,
             "features": {feature: _native(row[feature]) for feature in SELECTED_FEATURES},
         }
+
+    @staticmethod
+    def _estimated_row_cost(
+        *, actual_label: int, amount: float, decision: str, assumptions: dict[str, Any]
+    ) -> float:
+        fraud_cost = (
+            amount * float(assumptions["fraud_loss_fraction"])
+            + float(assumptions["chargeback_fixed_cost"])
+        )
+        legitimate_cost = (
+            amount * float(assumptions["legitimate_margin_rate"])
+            + float(assumptions["false_positive_fixed_cost"])
+        )
+        if decision == "APPROVE":
+            return fraud_cost if actual_label == 1 else 0.0
+        if decision == "BLOCK":
+            return legitimate_cost if actual_label == 0 else 0.0
+        residual = (
+            fraud_cost * (1 - float(assumptions["review_fraud_catch_rate"]))
+            if actual_label == 1
+            else legitimate_cost
+            * (1 - float(assumptions["review_legitimate_approval_rate"]))
+        )
+        return float(assumptions["manual_review_cost"]) + residual
 
     def interesting_cases(self) -> dict[str, Any]:
         frame = self.validation_frame

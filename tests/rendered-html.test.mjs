@@ -41,24 +41,23 @@ test("bootstrap adapter exposes null evidence instead of fake metrics", async ()
   assert.match(result.provenance, /Not evaluated yet/);
 });
 
-test("cost adapter validates threshold order and withholds unevaluated output", async () => {
+test("cost adapter validates the new request and never fabricates a fallback result", async () => {
   const app = await worker();
   const invalid = await app.fetch(new Request("http://localhost/api/v1/cost/simulate", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ review_threshold: 0.8, block_threshold: 0.4, assumptions: {} }),
+    body: JSON.stringify({ scenario_id: "moderate", review_threshold: 0.8, block_threshold: 0.4 }),
   }), env, ctx);
   assert.equal(invalid.status, 422);
 
   const valid = await app.fetch(new Request("http://localhost/api/v1/cost/simulate", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ review_threshold: 0.4, block_threshold: 0.8, assumptions: {} }),
+    body: JSON.stringify({ scenario_id: "moderate", review_threshold: 0.4, block_threshold: 0.8 }),
   }), env, ctx);
-  assert.equal(valid.status, 200);
+  assert.equal(valid.status, 503);
   const result = await valid.json();
-  assert.equal(result.evaluated, false);
-  assert.equal(result.proposed, null);
+  assert.match(result.detail, /No fallback result was fabricated/);
 });
 
 test("score adapter refuses to substitute a handcrafted model", async () => {
@@ -84,10 +83,12 @@ test("frontend clearly separates validation evidence from final results", async 
   assert.match(page, /Not evaluated yet/);
 });
 
-test("locked product surfaces contain no fake cases or monetary claims", async () => {
+test("active validation product surfaces keep costs estimated and final results sealed", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /No fake review cases are shown/);
-  assert.match(page, /No monetary result shown/);
-  assert.match(page, /No rupee estimate is displayed here/);
-  assert.doesNotMatch(page, /₹|reviewCases|estimatedSavings|moneySaved/);
+  assert.match(page, /Reveal Ground Truth/);
+  assert.match(page, /ILLUSTRATIVE|assumption_status|Estimated—not realized/);
+  assert.match(page, /Restore lowest-cost feasible validation configuration/);
+  assert.match(page, /FRAUD COUNT DETECTION/);
+  assert.match(page, /FRAUD AMOUNT CAPTURE/);
+  assert.doesNotMatch(page, /moneySaved|guaranteed savings/i);
 });

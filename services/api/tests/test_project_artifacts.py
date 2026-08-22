@@ -205,7 +205,7 @@ def test_artifact_parsing_and_not_evaluated_states(artifact_service: ProjectArti
     assert status["dataset"]["fraud_prevalence"] == 0.2
     assert status["split"]["strategy"] == "chronological"
     assert status["threshold_analysis"]["status"] == "not_evaluated"
-    assert status["operational_thresholds"]["status"] == "locked"
+    assert status["operational_thresholds"]["status"] == "not_evaluated"
     assert status["final_test"] == {"status": "not_evaluated", "test_status": "sealed"}
 
 
