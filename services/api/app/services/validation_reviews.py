@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import pandas as pd
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..models import ModelRun, ReviewCase, ThresholdConfig, Transaction
@@ -67,13 +68,18 @@ class ValidationReviewService:
         page_frame = frame.iloc[(page - 1) * page_size : page * page_size]
         ids = [str(int(value)) for value in page_frame["TransactionID"]]
         decisions: dict[str, ReviewCase] = {}
+        persistence_status = "available"
         if ids:
-            rows = db.scalars(
-                select(ReviewCase)
-                .join(ReviewCase.transaction)
-                .where(Transaction.transaction_id.in_(ids))
-            )
-            decisions = {row.transaction.transaction_id: row for row in rows}
+            try:
+                rows = db.scalars(
+                    select(ReviewCase)
+                    .join(ReviewCase.transaction)
+                    .where(Transaction.transaction_id.in_(ids))
+                )
+                decisions = {row.transaction.transaction_id: row for row in rows}
+            except SQLAlchemyError:
+                db.rollback()
+                persistence_status = "postgresql_unavailable"
         config = self.cost.operating_config
         return {
             "status": "validation_review_queue",
@@ -88,6 +94,7 @@ class ValidationReviewService:
             "total": total,
             "page_count": math.ceil(total / page_size) if total else 0,
             "ground_truth_hidden": True,
+            "persistence_status": persistence_status,
             "items": [
                 self._public_item(row, decisions.get(str(int(row["TransactionID"]))))
                 for _, row in page_frame.iterrows()
@@ -120,11 +127,15 @@ class ValidationReviewService:
 
     def reveal_ground_truth(self, db: Session, transaction_id: str) -> dict[str, Any]:
         row = self._row(transaction_id)
-        persisted = db.scalar(
-            select(ReviewCase).join(ReviewCase.transaction).where(
-                Transaction.transaction_id == transaction_id
+        try:
+            persisted = db.scalar(
+                select(ReviewCase).join(ReviewCase.transaction).where(
+                    Transaction.transaction_id == transaction_id
+                )
             )
-        )
+        except SQLAlchemyError:
+            db.rollback()
+            persisted = None
         actual = int(row["actual_label"])
         return {
             "transaction_id": transaction_id,

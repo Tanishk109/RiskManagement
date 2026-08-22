@@ -343,6 +343,7 @@ export type ValidationReviewPage = {
   total: number;
   page_count: number;
   ground_truth_hidden: true;
+  persistence_status: "available" | "postgresql_unavailable";
   items: ValidationReviewItem[];
   provenance: string;
 };

@@ -755,7 +755,7 @@ export default function Home() {
                     ["legitimate", "Legitimate cases"],
                   ] as Array<[ReviewOrder, string]>).map(([id, label]) => <button key={id} className={reviewOrder === id ? "active" : ""} onClick={() => { setReviewOrder(id); setReviewPage(1); }}>{label}</button>)}
                 </div>
-                {reviewQueue && <span>{formatNumber(reviewQueue.total)} validation cases · band {reviewQueue.review_threshold.toFixed(3)}–{reviewQueue.block_threshold.toFixed(3)}</span>}
+                {reviewQueue && <span>{formatNumber(reviewQueue.total)} validation cases · band {reviewQueue.review_threshold.toFixed(3)}–{reviewQueue.block_threshold.toFixed(3)}{reviewQueue.persistence_status !== "available" ? " · PostgreSQL unavailable: decisions disabled" : ""}</span>}
               </div>
               {reviewError && <EvidenceError message={reviewError} onRetry={() => setReviewReloadKey((value) => value + 1)} />}
               {reviewLoading && <div className="table-loading"><span /><span /><span /><span /></div>}

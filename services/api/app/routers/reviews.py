@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -36,6 +37,11 @@ def submit_review(review_id: int, payload: ReviewDecisionRequest, db: Annotated[
         result = decide_review(db, review_id, payload)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Operational PostgreSQL is unavailable; the reviewer decision was not saved.",
+        ) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="Review case not found")
     return result
