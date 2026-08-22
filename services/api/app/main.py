@@ -5,7 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import models  # noqa: F401
 from .config import get_settings
-from .routers import cost, evidence, project, reviews, scoring, transactions
+from .routers import (
+    chargebacks,
+    cost,
+    evidence,
+    project,
+    reviews,
+    scoring,
+    transactions,
+)
 
 settings = get_settings()
 app = FastAPI(
@@ -17,7 +25,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -33,3 +41,4 @@ app.include_router(transactions.router)
 app.include_router(reviews.router)
 app.include_router(scoring.router)
 app.include_router(cost.router)
+app.include_router(chargebacks.router)

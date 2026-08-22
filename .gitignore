@@ -53,6 +53,7 @@ yarn-error.log*
 /data/raw/
 /data/processed/
 /data/cache/
+/data/uploads/
 /data/**/*.csv
 /data/**/*.parquet
 /data/**/*.pkl

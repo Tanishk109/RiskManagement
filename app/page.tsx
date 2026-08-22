@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock3,
+  FileText,
   Database,
   FileWarning,
   Filter,
@@ -502,7 +503,7 @@ export default function Home() {
         </div>
 
         <nav aria-label="MerchantShield modules">
-          <span className="nav-label">Project evidence</span>
+          <span className="nav-label">Fraud risk</span>
           {sections.map((section) => {
             const Icon = section.icon;
             return (
@@ -515,6 +516,8 @@ export default function Home() {
               </button>
             );
           })}
+          <span className="nav-label nav-label-spaced">Loss prevention</span>
+          <a className="suite-nav-link" href="/chargebacks"><FileText size={17} /><span>Chargebacks</span></a>
         </nav>
 
         <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>Defense-only evidence</strong><span>Validation is visible. Final performance stays locked until the single held-out evaluation.</span></div></div>

@@ -41,6 +41,7 @@ class Settings(BaseModel):
         REPOSITORY_ROOT / "artifacts/models/validation_operating_config.json"
     )
     merchant_scenarios_path: Path = REPOSITORY_ROOT / "ml/configs/merchant_scenarios.yaml"
+    evidence_storage_root: Path = REPOSITORY_ROOT / "data/uploads/chargebacks"
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
@@ -110,6 +111,9 @@ def get_settings() -> Settings:
         ),
         merchant_scenarios_path=_path_from_env(
             "MERCHANT_SCENARIOS_PATH", defaults.merchant_scenarios_path
+        ),
+        evidence_storage_root=_path_from_env(
+            "EVIDENCE_STORAGE_ROOT", defaults.evidence_storage_root
         ),
         cors_origins=origins,
     )

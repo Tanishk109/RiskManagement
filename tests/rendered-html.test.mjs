@@ -141,3 +141,29 @@ test("active validation product surfaces keep costs estimated and final results 
   assert.match(page, /FRAUD AMOUNT CAPTURE/);
   assert.doesNotMatch(page, /moneySaved|guaranteed savings/i);
 });
+
+test("Chargebacks route renders an honest evidence responder", async () => {
+  const app = await worker();
+  const response = await app.fetch(new Request("http://localhost/chargebacks", { headers: { accept: "text/html" } }), env, ctx);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Chargeback Evidence Responder/i);
+  assert.match(html, /Not evaluated yet/i);
+  assert.match(html, /win probability/i);
+  assert.match(html, /human approval required/i);
+});
+
+test("Chargeback workflow accepts real input, labels files, and has no auto-submit path", async () => {
+  const source = await readFile(new URL("../components/chargebacks.tsx", import.meta.url), "utf8");
+  for (const field of ["Dispute ID", "Transaction ID", "Amount", "Deadline", "Customer name", "Order ID", "Carrier", "Merchant notes"]) {
+    assert.match(source, new RegExp(field));
+  }
+  for (const category of ["invoice", "proof_of_delivery", "tracking", "customer_communication", "refund_evidence", "merchant_policy", "other"]) {
+    assert.match(source, new RegExp(category));
+  }
+  assert.match(source, /Create evidence case/);
+  assert.match(source, /Generate evidence-grounded draft/);
+  assert.match(source, /Approve for export/);
+  assert.match(source, /No automatic submission/);
+  assert.doesNotMatch(source, /win_probability|success probability|auto-submit/i);
+});
