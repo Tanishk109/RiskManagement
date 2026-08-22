@@ -101,5 +101,10 @@ def decide_validation_review(
         raise HTTPException(status_code=404, detail="Validation review case not found") from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Operational PostgreSQL is unavailable; the reviewer decision was not saved.",
+        ) from exc
     except ArtifactUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
