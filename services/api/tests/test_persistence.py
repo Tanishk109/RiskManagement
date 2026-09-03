@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
 import pytest
-from app.config import operational_database_url
-from app.models import CostConfig, CostSimulation, RuleHit, Transaction
-from app.schemas.risk import CostSimulationRequest, Factor
+from alembic.config import Config
+from alembic.script import ScriptDirectory
+from app.config import (
+    operational_database_url,
+    required_database_url,
+    validate_database_transport,
+)
+from app.models import CostConfig, CostSimulation, ReviewCase, RuleHit, Transaction
+from app.schemas.risk import CostSimulationRequest, Factor, ReviewDecisionRequest
 from app.services.cost_service import simulate_from_held_out
 from app.services.evidence_store import upsert_runtime_evidence
-from app.services.repository import persist_scored_transaction
+from app.services.repository import decide_review, persist_scored_transaction
 from app.services.rules_engine import RuleHit as EvaluatedRuleHit
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 
 
 def test_operational_database_is_postgresql_only():
@@ -23,6 +31,30 @@ def test_operational_database_is_postgresql_only():
     )
     with pytest.raises(ValueError, match="PostgreSQL"):
         operational_database_url("sqlite:///merchantshield.db")
+
+
+def test_database_url_is_required_and_has_no_python_fallback(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(RuntimeError, match="DATABASE_URL is required"):
+        required_database_url()
+
+
+def test_production_database_url_requires_tls():
+    with pytest.raises(ValueError, match="must require TLS"):
+        validate_database_transport(
+            "postgresql://user:password@provider.example/merchantshield",
+            "production",
+        )
+    validate_database_transport(
+        "postgresql://user:password@provider.example/merchantshield?sslmode=require",
+        "production",
+    )
+
+
+def test_migration_history_has_one_current_head():
+    config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    script = ScriptDirectory.from_config(config)
+    assert script.get_heads() == ["0005_return_predictions"]
 
 
 def _evidence(db):
@@ -133,3 +165,44 @@ def test_cost_simulation_history_is_persisted(db, tmp_path, monkeypatch):
     assert result.evaluated is True
     assert result.simulation_group_id
     assert db.scalar(select(func.count()).select_from(CostSimulation)) == 2
+
+
+def test_review_write_failure_rolls_back_without_changing_decision(
+    db, seeded_review, monkeypatch
+):
+    rollback_calls = 0
+    real_rollback = db.rollback
+
+    def fail_commit():
+        raise SQLAlchemyError("simulated PostgreSQL write failure")
+
+    def tracked_rollback():
+        nonlocal rollback_calls
+        rollback_calls += 1
+        real_rollback()
+
+    monkeypatch.setattr(db, "commit", fail_commit)
+    monkeypatch.setattr(db, "rollback", tracked_rollback)
+
+    with pytest.raises(SQLAlchemyError, match="simulated PostgreSQL write failure"):
+        decide_review(
+            db,
+            seeded_review,
+            ReviewDecisionRequest(
+                decision="APPROVE",
+                reason="This write must roll back.",
+            ),
+        )
+
+    db.expire_all()
+    review = db.get(ReviewCase, seeded_review)
+    assert rollback_calls == 1
+    assert review is not None
+    assert review.status == "OPEN"
+    assert review.reviewer_decision is None
+
+
+def test_operational_schema_contains_no_training_dataset_tables():
+    table_names = set(Transaction.metadata.tables)
+    forbidden_fragments = ("ieee", "online_retail", "training_dataset", "train_transaction")
+    assert not any(fragment in table for fragment in forbidden_fragments for table in table_names)

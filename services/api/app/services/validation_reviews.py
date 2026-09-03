@@ -182,7 +182,11 @@ class ValidationReviewService:
         review.reviewer_reason = payload.reason or None
         review.reviewer_id = payload.reviewer_id
         review.reviewed_at = datetime.now(timezone.utc)
-        db.commit()
+        try:
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            raise
         return self._public_item(row, review)
 
     def _persist_transaction(self, db: Session, row: pd.Series) -> Transaction:

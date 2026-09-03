@@ -28,3 +28,11 @@ CatBoost still misses 2,304 validation fraud rows totaling 378,333.733 in `Trans
 Under **ILLUSTRATIVE MERCHANT ASSUMPTIONS** for Scenario B, the provisional validation operating point uses review threshold 0.175 and block threshold 0.250. This is not held-out performance or a final threshold. It routes 148 fraud rows to review and 1,070 to block, while 1,824 fraud rows totaling 289,883.247 in `TransactionAmt` remain approved.
 
 The earlier failure slices remain material even after adding `REVIEW`: `ProductCD=W` has 1,237/72/176 approved/reviewed/blocked fraud rows; amount `>=500` has 119/11/94; `card4=discover` has 59/11/52; and `ProductCD=S` has 58/11/38. The highest-value approved fraud remains TransactionID 3,455,844 at amount 3,822.95 and score 0.008379. These are validation residuals for later controlled rule-candidate analysis; no rules were implemented here.
+
+## Final temporal test failure pattern
+
+The frozen rule-free policy was evaluated once on the later 88,581-row held-out partition. At the 0.250 block threshold it produced 1,084 true positives, 1,750 false positives, and 1,999 false negatives, for precision 0.382498 and recall 0.351606. The review band contained 1,054 additional rows.
+
+The main temporal failure is precision stability rather than block recall: validation block recall was 0.351742, while held-out recall is 0.351606, but precision fell from 0.616005 to 0.382498 as block volume rose from 1.960917% to 3.199332%. Estimated false-positive cost increased from INR 33,596.47 on validation to INR 81,533.13 on the equally sized held-out partition under the same illustrative assumptions. Expected fraud-amount capture also fell from 41.162812% to 36.206639%.
+
+This is final test evidence of temporal generalization weakness. It is documented rather than repaired: no post-test threshold, feature, model, or rule tuning is permitted against this held-out result.

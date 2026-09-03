@@ -11,7 +11,9 @@ from .routers import (
     cost,
     evidence,
     fraud_pulse,
+    health,
     project,
+    returns,
     reviews,
     scoring,
     transactions,
@@ -33,11 +35,12 @@ app.add_middleware(
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def api_health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 app.include_router(evidence.router)
+app.include_router(health.router)
 app.include_router(project.router)
 app.include_router(transactions.router)
 app.include_router(reviews.router)
@@ -46,3 +49,4 @@ app.include_router(cost.router)
 app.include_router(chargebacks.router)
 app.include_router(fraud_pulse.router)
 app.include_router(abuse_rings.router)
+app.include_router(returns.router)

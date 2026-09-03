@@ -1,0 +1,66 @@
+{
+  "evaluation_status": "complete",
+  "generated_at": "2026-09-02T17:25:51.109058+00:00",
+  "split": "test",
+  "held_out_test_accessed": true,
+  "model_retrained_for_final_evaluation": false,
+  "metric_definition": "Binary precision/recall/F1 use the frozen block threshold; review-band outcomes are represented separately in cost calculations.",
+  "test_transaction_count": 88581,
+  "fraud_count": 3083,
+  "precision": 0.3824982357092449,
+  "recall": 0.3516055789815115,
+  "f1": 0.36640189285110697,
+  "average_precision": 0.38291970891164306,
+  "roc_auc": 0.8513718412754847,
+  "brier_score": 0.026175974278873887,
+  "true_positives": 1084,
+  "false_positives": 1750,
+  "true_negatives": 83748,
+  "false_negatives": 1999,
+  "approve_count": 84693,
+  "review_count": 1054,
+  "block_count": 2834,
+  "decision_distribution": {
+    "approve": {
+      "count": 84693,
+      "share": 0.956107968977546
+    },
+    "review": {
+      "count": 1054,
+      "share": 0.011898714171210531
+    },
+    "block": {
+      "count": 2834,
+      "share": 0.03199331685124349
+    }
+  },
+  "confusion_matrix": {
+    "true_positives": 1084,
+    "false_positives": 1750,
+    "true_negatives": 83748,
+    "false_negatives": 1999
+  },
+  "detected_fraud_recall": 0.4067466753162504,
+  "fraud_amount_capture_rate": 0.362066393169216,
+  "false_positive_estimated_cost": 81533.1250708,
+  "false_negative_estimated_cost": 346942.19896,
+  "review_cost": 26350.0,
+  "review_expected_residual_cost": 4082.0998008,
+  "total_estimated_cost": 454825.3240308,
+  "review_threshold": 0.175,
+  "block_threshold": 0.25,
+  "threshold_selection_split": "validation",
+  "threshold_selection_reason": "lowest estimated cost feasible under a 2% review-capacity limit",
+  "business_assumptions": {
+    "currency": "INR",
+    "fraud_loss_fraction": 0.85,
+    "chargeback_fixed_cost": 50.0,
+    "legitimate_margin_rate": 0.18,
+    "false_positive_fixed_cost": 20.0,
+    "manual_review_cost": 25.0,
+    "review_fraud_catch_rate": 0.9,
+    "review_legitimate_approval_rate": 0.98
+  },
+  "business_assumption_status": "ILLUSTRATIVE MERCHANT ASSUMPTIONS",
+  "active_rule_count": 0
+}

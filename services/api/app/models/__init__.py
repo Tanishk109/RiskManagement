@@ -1,6 +1,7 @@
 from .abuse_rings import AbuseClusterRecord, AbuseGraphRun
 from .chargebacks import ChargebackCase, ChargebackDraft, ChargebackEvidence
 from .fraud_pulse import FraudPulseAlert, FraudPulseRun
+from .returns import ReturnPrediction
 from .risk import (
     CostConfig,
     CostSimulation,
@@ -24,6 +25,7 @@ __all__ = [
     "FraudPulseRun",
     "ModelRun",
     "PredictionReason",
+    "ReturnPrediction",
     "ReviewCase",
     "RuleHit",
     "ThresholdConfig",

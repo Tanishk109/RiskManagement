@@ -26,7 +26,10 @@ transaction features
 - `services/api` owns artifact provenance, score orchestration, rules, persistence, review decisions, and HTTP validation.
 - `apps/web` is the frontend package boundary. OpenAI Sites currently requires the vinext application at the repository root, so the root `app/` is the deployable adapter and `apps/web/app/page.tsx` re-exports it.
 - PostgreSQL is the only operational persistence layer. In-memory SQLite is used only by isolated unit tests and is never a runtime option.
+- FastAPI receives PostgreSQL exclusively through the required server-side `DATABASE_URL`. Local Mac processes use `localhost`; the Compose API uses the `postgres` service hostname; a deployed API uses a managed PostgreSQL URL.
+- The Sites frontend never receives database credentials or opens PostgreSQL directly. It calls FastAPI over HTTPS through `NEXT_PUBLIC_API_URL`.
 - The hosted same-origin API adapter returns an unevaluated state because protected models and IEEE-CIS rows are not embedded in the public build.
+- The local API container imports the copied repository packages through `/workspace/ml/src` and `/workspace/services/api`, keeping default artifact paths rooted at `/workspace` rather than the Python installation directory.
 
 ## Source-of-truth rules
 

@@ -271,7 +271,7 @@ class ProjectArtifactService:
                 "validation_transaction_dt_max": int(self.split["validation_transaction_dt_max"]),
                 "test_transaction_dt_min": int(self.split["test_transaction_dt_min"]),
                 "test_transaction_dt_max": int(self.split["test_transaction_dt_max"]),
-                "test_status": "sealed",
+                "test_status": "evaluated_once" if final_status == "complete" else "sealed",
             },
             "baseline": {
                 "status": "evaluated_on_validation",
@@ -291,7 +291,10 @@ class ProjectArtifactService:
                     else "not_evaluated"
                 )
             },
-            "final_test": {"status": final_status, "test_status": "sealed"},
+            "final_test": {
+                "status": final_status,
+                "test_status": "evaluated_once" if final_status == "complete" else "sealed",
+            },
         }
 
     def model_comparison(self) -> dict[str, Any]:

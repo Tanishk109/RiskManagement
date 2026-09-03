@@ -1,12 +1,54 @@
 from __future__ import annotations
 
-from app.database import Base
+from app.database import Base, get_db
+from app.main import app
+from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 
 
 def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_database_health_executes_a_real_query(client):
+    response = client.get("/health/db")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "database": "postgresql"}
+
+
+def test_database_health_failure_is_clear_and_does_not_expose_credentials(client):
+    class UnavailableDatabase:
+        rolled_back = False
+
+        def execute(self, _statement):
+            raise OperationalError(
+                "SELECT 1",
+                {},
+                Exception("postgresql://merchant:super-secret@example.invalid/database"),
+            )
+
+        def rollback(self):
+            self.rolled_back = True
+
+    unavailable = UnavailableDatabase()
+
+    def override_unavailable_database():
+        yield unavailable
+
+    original = app.dependency_overrides[get_db]
+    app.dependency_overrides[get_db] = override_unavailable_database
+    try:
+        with TestClient(app, raise_server_exceptions=False) as unavailable_client:
+            response = unavailable_client.get("/health/db")
+    finally:
+        app.dependency_overrides[get_db] = original
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "Operational PostgreSQL is unavailable."}
+    assert "super-secret" not in response.text
+    assert unavailable.rolled_back is True
 
 
 def test_metrics_are_honest_when_artifact_is_absent(client):
@@ -34,6 +76,12 @@ def test_review_submission_is_persisted(client, seeded_review):
     assert response.status_code == 200
     assert response.json()["status"] == "DECIDED"
     assert response.json()["reviewer_decision"] == "BLOCK"
+    assert response.json()["reviewer_reason"] == "Confirmed mismatch after manual evidence review."
+    readback = client.get("/api/v1/reviews", params={"status": "DECIDED"})
+    assert readback.status_code == 200
+    assert len(readback.json()) == 1
+    assert readback.json()[0]["reviewer_decision"] == "BLOCK"
+    assert readback.json()[0]["reviewer_reason"] == response.json()["reviewer_reason"]
     repeat = client.post(
         f"/api/v1/reviews/{seeded_review}/decision",
         json={"decision": "APPROVE", "reason": "Second decision must not replace the first."},

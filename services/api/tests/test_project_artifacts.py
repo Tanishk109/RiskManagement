@@ -234,6 +234,20 @@ def test_artifact_parsing_and_not_evaluated_states(artifact_service: ProjectArti
     assert status["final_test"] == {"status": "not_evaluated", "test_status": "sealed"}
 
 
+def test_completed_final_evaluation_is_reported_as_evaluated_once(
+    artifact_service: ProjectArtifactService,
+):
+    artifact_service.paths.final_metrics.write_text(
+        json.dumps({"split": "test", "evaluation_status": "complete"}),
+        encoding="utf-8",
+    )
+
+    status = artifact_service.project_status()
+
+    assert status["split"]["test_status"] == "evaluated_once"
+    assert status["final_test"] == {"status": "complete", "test_status": "evaluated_once"}
+
+
 def test_model_comparison_is_calculated_from_artifacts(artifact_service: ProjectArtifactService):
     comparison = artifact_service.model_comparison()
     assert comparison["logistic_regression"]["metrics"]["average_precision"] == 0.25

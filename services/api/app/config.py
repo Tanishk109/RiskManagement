@@ -3,10 +3,13 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+load_dotenv(REPOSITORY_ROOT / ".env", override=False)
 
 
 class Settings(BaseModel):
@@ -14,8 +17,8 @@ class Settings(BaseModel):
 
     app_name: str = "MerchantShield API"
     environment: str = "development"
-    database_url: str = "postgresql+psycopg://merchantshield:merchantshield@localhost:5432/merchantshield"
-    model_path: Path = REPOSITORY_ROOT / "artifacts/models/model.joblib"
+    database_url: str
+    model_path: Path = REPOSITORY_ROOT / "artifacts/models/catboost_candidate.cbm"
     model_metadata_path: Path = REPOSITORY_ROOT / "artifacts/models/model_metadata.json"
     metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/final_test_metrics.json"
     predictions_path: Path = REPOSITORY_ROOT / "artifacts/metrics/final_test_predictions.csv"
@@ -42,6 +45,11 @@ class Settings(BaseModel):
     )
     merchant_scenarios_path: Path = REPOSITORY_ROOT / "ml/configs/merchant_scenarios.yaml"
     evidence_storage_root: Path = REPOSITORY_ROOT / "data/uploads/chargebacks"
+    return_model_path: Path = REPOSITORY_ROOT / "artifacts/models/return_risk_catboost.cbm"
+    return_model_metadata_path: Path = (
+        REPOSITORY_ROOT / "artifacts/models/return_risk_catboost_metadata.json"
+    )
+    return_metrics_path: Path = REPOSITORY_ROOT / "artifacts/metrics/returns_evaluation.json"
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:3000",
@@ -67,9 +75,35 @@ def operational_database_url(value: str) -> str:
     raise ValueError("DATABASE_URL must point to PostgreSQL (local Docker, Neon, or Supabase)")
 
 
+def required_database_url() -> str:
+    value = os.getenv("DATABASE_URL", "").strip()
+    if not value:
+        raise RuntimeError(
+            "DATABASE_URL is required. Copy .env.example to .env for local Docker or set a "
+            "server-side Neon/Supabase connection string."
+        )
+    return value
+
+
+def validate_database_transport(value: str, environment: str) -> None:
+    if environment.lower() != "production":
+        return
+    normalized = operational_database_url(value)
+    query = parse_qs(urlparse(normalized).query)
+    secure_modes = {"require", "verify-ca", "verify-full"}
+    if not secure_modes.intersection(query.get("sslmode", [])):
+        raise ValueError(
+            "Production DATABASE_URL must require TLS using sslmode=require, verify-ca, or "
+            "verify-full."
+        )
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    defaults = Settings()
+    database_url = required_database_url()
+    defaults = Settings(database_url=database_url)
+    environment = os.getenv("ENVIRONMENT", defaults.environment)
+    validate_database_transport(database_url, environment)
     origins = [
         item.strip()
         for item in os.getenv(
@@ -78,8 +112,8 @@ def get_settings() -> Settings:
         if item.strip()
     ]
     return Settings(
-        environment=os.getenv("ENVIRONMENT", defaults.environment),
-        database_url=os.getenv("DATABASE_URL", defaults.database_url),
+        environment=environment,
+        database_url=database_url,
         model_path=_path_from_env("MODEL_PATH", defaults.model_path),
         model_metadata_path=_path_from_env("MODEL_METADATA_PATH", defaults.model_metadata_path),
         metrics_path=_path_from_env("METRICS_PATH", defaults.metrics_path),
@@ -115,5 +149,10 @@ def get_settings() -> Settings:
         evidence_storage_root=_path_from_env(
             "EVIDENCE_STORAGE_ROOT", defaults.evidence_storage_root
         ),
+        return_model_path=_path_from_env("RETURN_MODEL_PATH", defaults.return_model_path),
+        return_model_metadata_path=_path_from_env(
+            "RETURN_MODEL_METADATA_PATH", defaults.return_model_metadata_path
+        ),
+        return_metrics_path=_path_from_env("RETURN_METRICS_PATH", defaults.return_metrics_path),
         cors_origins=origins,
     )

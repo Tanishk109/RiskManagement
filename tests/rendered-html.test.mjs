@@ -72,7 +72,7 @@ test("anonymized fields are disclosed without invented explanations", async () =
   assert.match(riskCheck, /anonymized competition features/);
   assert.match(riskCheck, /does not assign or invent semantic meanings/);
   assert.match(riskCheck, /No explanation is shown/);
-  assert.match(riskCheck, /held-out test sealed/i);
+  assert.match(riskCheck, /held-out labels excluded/i);
   assert.doesNotMatch(riskCheck, /C1 — .*velocity|C2 — .*chargeback|D1 — .*account age/i);
 });
 
@@ -123,8 +123,11 @@ test("frontend source contains no former fabricated evaluation constants", async
 test("frontend clearly separates validation evidence from final results", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /VALIDATION RESULTS/);
-  assert.match(page, /Not final held-out performance/);
+  assert.match(page, /Development evidence—not final test/);
   assert.match(page, /FINAL HELD-OUT EVALUATION/);
+  assert.match(page, /\/api\/v1\/metrics\/summary/);
+  assert.match(page, /Held-out results loaded/);
+  assert.match(page, /Post-test tuning is prohibited/);
   assert.match(page, /Held-out test remains sealed/);
   assert.match(page, /Not evaluated yet/);
 });
@@ -188,7 +191,7 @@ test("Fraud Pulse exposes baseline controls, honest states, and no fake signal",
   assert.match(source, /Every valid row is scored by the frozen model before aggregation/);
   assert.match(source, /isFraud and actual_label are forbidden/);
   assert.match(source, /Uploaded files are not persisted/);
-  assert.match(source, /Held-out test sealed/);
+  assert.match(source, /Held-out rows excluded/);
   assert.doesNotMatch(source, /SIMULATED TEST SIGNAL|confirmed fraud attack|new classifier trained/i);
 });
 

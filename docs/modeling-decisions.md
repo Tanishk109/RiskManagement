@@ -2,7 +2,7 @@
 
 ## Current status
 
-The official local IEEE-CIS labeled training files have passed validation and EDA and have been materialized into chronological train, validation, and held-out test partitions. The frozen identity-free CatBoost candidate now has a validation-only, cost-aware `APPROVE` / `REVIEW` / `BLOCK` analysis under explicitly illustrative merchant assumptions. The provisional Scenario B operating point is for continued development only: the held-out test remains untouched and merchant-facing final performance remains **Not evaluated yet**.
+The official local IEEE-CIS labeled training files passed validation and EDA and were materialized into chronological train, validation, and held-out test partitions. The identity-free CatBoost candidate, its 13-feature schema, and the Scenario B operating point were frozen from validation, then evaluated once on the final temporal 15% without retraining. Held-out precision is 0.382498, recall 0.351606, F1 0.366402, and PR-AUC 0.382920 at the frozen 0.250 block threshold. No rule was enabled. These are final offline test results, not production guarantees.
 
 ## Real Dataset Validation
 
@@ -108,11 +108,11 @@ Fraud rows have materially higher identity availability in all three periods, so
 - **HELD-OUT TEST:** final reporting only after every decision is frozen; never use it for selection or tuning.
 - `FORBIDDEN_MODEL_FEATURES` rejects `isFraud`, `TransactionID`, and `actual_label` from model feature lists. `TransactionDT` is not automatically forbidden because the later experiment must compare with versus without it.
 - All future preprocessing must be fit on train only. Any future aggregate or velocity feature must use strictly earlier transactions.
-- The current split phase generated no predictions, model metrics, thresholds, costs, rules, calibration objects, or model files.
+- The split phase itself generated no predictions, model metrics, thresholds, costs, rules, calibration objects, or model files; those artifacts were produced only in the later modeling phases.
 
 ## Model choice
 
-Logistic Regression remains the frozen transparent baseline. CatBoost is now the selected validation candidate after a controlled native-categorical comparison on the same conservative features. Neither model has been evaluated on the held-out test, and the selected CatBoost result is not final merchant-facing performance.
+Logistic Regression remains the frozen transparent baseline. CatBoost was selected on validation after a controlled native-categorical comparison on the same conservative features. Only the selected identity-free CatBoost candidate received the one final held-out evaluation; Logistic Regression was not evaluated on test.
 
 ## Calibration
 
@@ -120,7 +120,7 @@ Diagnostics and Brier score are implemented. No Platt or isotonic calibrator is 
 
 ## Threshold choice
 
-Two thresholds implement `APPROVE` / `REVIEW` / `BLOCK`. A validation-only grid from 0.05–0.80 for review and 0.10–0.95 for block, in 0.025 steps with review strictly below block, has now been evaluated. Under the predeclared illustrative Scenario B assumptions, review 0.175 and block 0.250 is the provisional validation operating point. It is not a final, production, or universal threshold.
+Two thresholds implement `APPROVE` / `REVIEW` / `BLOCK`. A validation-only grid from 0.05–0.80 for review and 0.10–0.95 for block, in 0.025 steps with review strictly below block, was evaluated. Under the predeclared illustrative Scenario B assumptions, review 0.175 and block 0.250 was selected and frozen for final test reporting. It is still not a production or universal threshold.
 
 ## What Didn't Work
 
@@ -226,7 +226,7 @@ The identity-free model reduced `ProductCD=S` recall by 0.186916 and reduced rec
 - Validation AP 0.426003; ROC-AUC 0.860332; precision 0.769552; recall 0.242604; F1 0.368908 at 0.50.
 - Brier score: 0.024689; diagnostic only, with no calibration fitted.
 - Top native importances are `C1`, `TransactionAmt`, `C5`, `D2`, and `C2`. Importance is associative, not causal, and masked fields are not assigned meanings.
-- Status: validation candidate only. The held-out test is still sealed; validation-only cost/threshold analysis is documented below, while merchant-facing final metrics remain **Not evaluated yet**.
+- Status: selected on validation and evaluated once on the later held-out test without retraining. The validation metrics in this section remain development evidence; final metrics are documented separately below.
 
 ## Why Threshold 0.50 Is Not Operational
 
@@ -282,7 +282,26 @@ The validation fraud rows total INR 496,907.588 in `TransactionAmt`. At the prov
 
 The continued-development default is Scenario B with review threshold 0.175 and block threshold 0.250. It is the lowest estimated-cost validation grid row feasible under the predeclared 2% review-capacity ceiling: 632 reviews (0.713471%), 1,737 blocks (1.960917%), 667 false positives, 1,824 fraud approvals, 40.039448% row detection, and 41.162812% expected fraud-amount capture. Its estimated decomposition is INR 340,451.48 fraud loss, INR 33,596.47 false-positive cost, and INR 15,800 manual-review cost, totaling INR 389,847.95 under Scenario B assumptions.
 
-This operating point is provisional, validation-only, uncalibrated, merchant-dependent, and not final. It must be frozen with any later validation-derived rules before the held-out test is accessed.
+This operating point was provisional, validation-only, uncalibrated, and merchant-dependent during selection. The `make evaluate` invocation froze it with zero enabled rules before the held-out test was read. It remains an offline evaluation policy, not a universal production recommendation.
+
+## Final Held-Out Evaluation
+
+The saved TRAIN-fitted `catboost-validation-v1` bundle was evaluated once on the final 88,581 chronological rows. No fit, feature, calibration, threshold, cost-assumption, or rule change occurred during final evaluation. A durable access record prevents accidental reruns.
+
+| Held-out metric | Result |
+| --- | ---: |
+| Fraud rows | 3,083 |
+| Precision at block threshold | 0.382498 |
+| Recall at block threshold | 0.351606 |
+| F1 | 0.366402 |
+| Average precision / PR-AUC | 0.382920 |
+| ROC-AUC | 0.851372 |
+| TP / FP / TN / FN | 1,084 / 1,750 / 83,748 / 1,999 |
+| APPROVE / REVIEW / BLOCK | 84,693 / 1,054 / 2,834 |
+
+Compared with validation at the same frozen policy, block recall stayed nearly flat (0.351742 to 0.351606), but block precision fell from 0.616005 to 0.382498. The review rate increased from 0.713471% to 1.189871%, block rate from 1.960917% to 3.199332%, and false positives from 667 to 1,750. PR-AUC fell from 0.426003 to 0.382920. This temporal degradation is retained as the honest final result and must not trigger post-test tuning.
+
+Under the same explicitly illustrative Scenario B inputs, estimated total cost is INR 454,825.32, including INR 81,533.13 estimated false-positive cost and INR 26,350.00 manual-review cost. Expected fraud-amount capture is 36.206639%. These values are scenario estimates, not realized merchant savings.
 
 ## Remaining Failure Cases
 

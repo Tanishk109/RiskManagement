@@ -206,6 +206,35 @@ export type ProjectStatusResponse = {
   final_test: { status: string; test_status: string };
 };
 
+export type FinalMetricsResponse = {
+  evaluated: boolean;
+  provenance: string;
+  generated_at: string | null;
+  metrics: {
+    test_transaction_count: number;
+    fraud_count: number;
+    precision: number;
+    recall: number;
+    f1: number;
+    average_precision: number;
+    roc_auc: number;
+    brier_score: number;
+    true_positives: number;
+    false_positives: number;
+    true_negatives: number;
+    false_negatives: number;
+    approve_count: number;
+    review_count: number;
+    block_count: number;
+    false_positive_estimated_cost: number;
+    false_negative_estimated_cost: number;
+    review_cost: number;
+    total_estimated_cost: number;
+    review_threshold: number;
+    block_threshold: number;
+  } | null;
+};
+
 export type ValidationMetrics = {
   average_precision: number;
   roc_auc: number;

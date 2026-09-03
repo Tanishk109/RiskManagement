@@ -2,7 +2,7 @@
 
 MerchantShield is a defense-only, cost-aware fraud decision engine for merchants. It converts a model risk score and validation-derived rules into one of three actions—`APPROVE`, `REVIEW`, or `BLOCK`—then records human review and measures the estimated merchant cost of that configuration.
 
-Current evidence status: the official local IEEE-CIS labeled training files have passed validation and EDA, the chronological 70/15/15 partitions are frozen, and TRAIN-fitted Logistic Regression and CatBoost candidates have been compared on VALIDATION. Identity-free CatBoost is the selected validation candidate, and validation-only three-way threshold/cost analysis is complete under explicitly illustrative merchant scenarios. Rules remain pending. Final held-out and merchant-facing performance remains **Not evaluated yet**; protected rows and model bundles remain local and ignored by git.
+Current evidence status: the official local IEEE-CIS labeled training files passed validation and EDA, chronological 70/15/15 partitions were frozen, and TRAIN-fitted Logistic Regression and CatBoost candidates were compared on VALIDATION. The identity-free CatBoost candidate and Scenario B thresholds were then frozen and evaluated once on the held-out temporal test. At the block threshold, held-out precision is 0.382498, recall 0.351606, F1 0.366402, and PR-AUC 0.382920. No rule was enabled because no validation-supported rule had been accepted. Protected rows and model bundles remain local and ignored by git.
 
 ## Problem
 
@@ -61,14 +61,26 @@ Automated tests verify chronological ordering and disjoint `TransactionID` sets.
 The comparison is intentionally narrow:
 
 1. Logistic Regression with TRAIN-only imputation, scaling, one-hot encoding, and balanced/unweighted comparisons is complete on VALIDATION.
-2. CatBoost with native categorical handling has been compared under none, Balanced, and SqrtBalanced weighting. The selected identity-free candidate remains validation-only.
+2. CatBoost with native categorical handling was compared under none, Balanced, and SqrtBalanced weighting. The selected identity-free candidate has now received its one final held-out evaluation without retraining.
 
 Masked IEEE-CIS fields such as `V17` or `C1` are never assigned invented business meanings. The pipeline does not use SMOTE by default and does not run a giant hyperparameter search.
 
 ## Actual Results
 
 <!-- RESULTS:START -->
-**Not evaluated yet.** Run the real-data pipeline before presenting precision, recall, F1, PR-AUC, cost, latency, or savings claims.
+| Held-out metric | Value |
+|---|---:|
+| Transactions | 88,581 |
+| Fraud cases | 3,083 |
+| Precision at block threshold | 0.382498 |
+| Recall at block threshold | 0.351606 |
+| F1 | 0.366402 |
+| Average precision / PR-AUC | 0.382920 |
+| False positives | 1,750 |
+| False negatives | 1,999 |
+| Total estimated cost (INR) | 454,825.32 |
+
+Calculated from the held-out temporal test set using the business assumptions listed in the final evaluation artifact.
 <!-- RESULTS:END -->
 
 This section is updated from `artifacts/metrics/final_test_metrics.json` by `ml/scripts/render_readme_results.py`; it is not manually maintained in multiple places.
@@ -95,7 +107,7 @@ The initial SAGA baseline run failed to converge within 1,000 iterations for all
 
 The UI contains five main sections:
 
-- Overview: real dataset, chronological split, Logistic Regression/CatBoost validation evidence, feature importance, and failure analysis, with final results kept separate and locked.
+- Overview: real dataset, chronological split, Logistic Regression/CatBoost validation evidence, feature importance, failure analysis, and separately identified final held-out results.
 - Risk Check: single-transaction scoring, label-safe validation-transaction loading, and temporary exact-schema CSV scoring through the frozen CatBoost validation candidate and provisional validation thresholds. Batch files are limited to 1 MB and 1,000 data rows and are not persisted.
 - Transactions: real validation labels and scores, the model class at 0.50, provisional three-way business decisions, thresholds, selected input fields, estimated per-decision cost, backend filters, interesting cases, and visible `MODEL ERROR` flags.
 - Review Queue: real rows inside the provisional validation review band, hidden ground truth until explicit reveal, and PostgreSQL-persisted `APPROVE` / `BLOCK` reviewer decisions. Review actions do not change model artifacts or metrics.
@@ -117,13 +129,31 @@ make prepare-data
 make eda
 make train-baseline
 make train-primary
+make threshold-analysis
 make error-analysis
-make evaluate
-make db-sync
 make test
 make lint
 make typecheck
 ```
+
+The commands above stop before held-out evaluation. After the CatBoost model, feature schema,
+validation thresholds, rule policy, and merchant assumptions are frozen, validate the final
+evaluation inputs without reading test rows:
+
+```bash
+make evaluate-preflight
+```
+
+Only then run the one final held-out evaluation and synchronize its evidence to PostgreSQL:
+
+```bash
+make evaluate
+make db-sync
+```
+
+`make evaluate` loads the existing TRAIN-fitted CatBoost bundle and the VALIDATION-selected
+operating configuration. It does not retrain or retune. A durable access record prevents an
+accidental second test evaluation.
 
 Run the services separately:
 
@@ -132,7 +162,7 @@ make api   # http://localhost:8000
 make web   # http://localhost:3000
 ```
 
-Or use PostgreSQL, migrated API, and web together:
+Or use PostgreSQL, migrated API, and web together after copying `.env.example` to `.env`:
 
 ```bash
 docker compose up --build
@@ -142,7 +172,21 @@ The API container applies Alembic migrations before startup. The generated OpenA
 
 ## Operational Database
 
-`DATABASE_URL` identifies the PostgreSQL service. The checked-in default targets local Docker; standard `postgres://`, `postgresql://`, and `postgresql+psycopg://` URLs are normalized onto psycopg 3, so Neon or Supabase can be configured without code changes.
+`DATABASE_URL` is required and is the only database location read by FastAPI. There is no Python fallback containing local credentials. Standard `postgres://`, `postgresql://`, and `postgresql+psycopg://` URLs are normalized onto psycopg 3, so local Docker, Neon, or Supabase can be selected without application-code changes.
+
+Local setup uses `.env` (ignored by Git) and a persistent Docker volume named `merchantshield_postgres_data`. The API process on the Mac connects to `localhost:5432`; the API container connects to the Compose service hostname `postgres:5432`.
+
+```bash
+cp .env.example .env        # replace change_me
+make db-up
+make db-status
+make db-migrate
+curl http://localhost:8000/health/db
+```
+
+See [PostgreSQL operations](docs/postgresql-operations.md) for direct SQL checks, Review Queue persistence verification, safe restart instructions, and hosted-database boundaries.
+
+Production sets `ENVIRONMENT=production` and a backend-only Neon/Supabase `DATABASE_URL` containing an approved `sslmode`. Apply the unchanged Alembic migration chain to that database before API startup. The operations guide also documents intentional reset and common Docker, port, authentication, migration, and container-hostname failures.
 
 Alembic owns schema changes:
 
@@ -152,7 +196,7 @@ make db-check    # compare models with migration head on a running database
 make db-sync     # copy final model metadata/metrics into runtime tables
 ```
 
-The operational schema contains `transactions`, `prediction_reasons`, `rule_hits`, `review_cases`, `model_runs`, `threshold_configs`, `cost_configs`, and `cost_simulations`. JSONB is limited to variable model metadata such as the feature-name list and split descriptions; transaction features, rule hits, metrics, thresholds, and costs use typed relational columns.
+The operational schema contains `transactions`, `prediction_reasons`, `rule_hits`, `review_cases`, `model_runs`, `threshold_configs`, `cost_configs`, `cost_simulations`, and the normalized tables for enabled secondary workflows. JSONB is limited to genuinely variable metadata such as the feature-name list and split descriptions; transaction features, rule hits, metrics, thresholds, and costs use typed relational columns.
 
 ## Repository Layout
 
@@ -175,7 +219,7 @@ docs/                     architecture, decisions, failures, demo guide
 - Fraud patterns change over time; offline performance does not equal production performance.
 - Cost assumptions vary by merchant and must be reviewed before decisions are operationalized.
 - False positives can harm customer experience, and manual review adds operational cost.
-- Real-data validation, EDA, chronological splitting, a Logistic Regression baseline, and CatBoost validation selection are complete locally, but there is no held-out performance evidence yet, so the project is not definition-of-done for ML performance.
+- Real-data validation, EDA, chronological splitting, Logistic Regression baseline, CatBoost validation selection, and the one final held-out evaluation are complete locally. The held-out precision decline and increased false-positive volume show that the result is not equivalent to production readiness.
 - The hosted adapter is stateless until `NEXT_PUBLIC_API_URL` points to a deployed FastAPI service; operational persistence belongs to that service's PostgreSQL database.
 
 ## Rejected Scope
@@ -184,7 +228,7 @@ We deliberately did not implement Kafka, Neo4j, GNNs, an LLM analyst chatbot, fr
 
 ## Future Work
 
-After the five-module loop has genuine held-out evidence, possible future work includes graph-based abuse-ring detection, stream processing, production drift detection, multi-merchant models, automated rule backtesting, analyst copilots, active learning, and real chargeback feedback. None is presented as implemented.
+Possible future work includes stream processing, production drift detection, multi-merchant models, automated rule backtesting, active learning, and real chargeback feedback. No post-test tuning is permitted on the reported held-out result.
 
 ## Safety and Data Governance
 

@@ -49,6 +49,7 @@ import type {
   FeatureImportanceResponse,
   CostScenariosResponse,
   CostSimulationResponse,
+  FinalMetricsResponse,
   GroundTruthResponse,
   InterestingCasesResponse,
   ModelComparisonResponse,
@@ -169,6 +170,10 @@ function LockedValue({ label }: { label: string }) {
   return <div className="locked-value"><span>{label}</span><strong>Not evaluated yet</strong></div>;
 }
 
+function FinalValue({ label, value }: { label: string; value: string }) {
+  return <div className="locked-value final-value"><span>{label}</span><strong>{value}</strong></div>;
+}
+
 function LoadingOverview() {
   return (
     <div className="loading-grid" aria-label="Loading project evidence">
@@ -221,6 +226,7 @@ export default function Home() {
   const [active, setActive] = useState<Section>("overview");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [status, setStatus] = useState<ProjectStatusResponse | null>(null);
+  const [finalMetrics, setFinalMetrics] = useState<FinalMetricsResponse | null>(null);
   const [comparison, setComparison] = useState<ModelComparisonResponse | null>(null);
   const [importance, setImportance] = useState<FeatureImportanceResponse | null>(null);
   const [interesting, setInteresting] = useState<InterestingCasesResponse | null>(null);
@@ -264,9 +270,19 @@ export default function Home() {
       fetchJson<InterestingCasesResponse>("/api/v1/validation/interesting-cases", controller.signal),
       fetchJson<CostScenariosResponse>("/api/v1/cost/scenarios", controller.signal),
       fetchJson<CostSimulationResponse>("/api/v1/cost/validation-summary", controller.signal),
+      fetchJson<FinalMetricsResponse>("/api/v1/metrics/summary", controller.signal),
     ])
-      .then(([nextStatus, nextComparison, nextImportance, nextInteresting, nextScenarios, nextCost]) => {
+      .then(([
+        nextStatus,
+        nextComparison,
+        nextImportance,
+        nextInteresting,
+        nextScenarios,
+        nextCost,
+        nextFinalMetrics,
+      ]) => {
         setStatus(nextStatus);
+        setFinalMetrics(nextFinalMetrics);
         setComparison(nextComparison);
         setImportance(nextImportance);
         setInteresting(nextInteresting);
@@ -480,8 +496,12 @@ export default function Home() {
   }
 
   const activeLabel = sections.find((section) => section.id === active)?.label;
+  const finalEvidence = finalMetrics?.evaluated ? finalMetrics.metrics : null;
+  const finalEvaluated = status?.final_test.status === "complete" && finalEvidence !== null;
   const evidenceLabel = status
-    ? "Validation candidate ready"
+    ? finalEvaluated
+      ? "Held-out results loaded"
+      : "Validation candidate ready"
     : loading
       ? "Loading project evidence"
       : "Project evidence unavailable";
@@ -501,7 +521,7 @@ export default function Home() {
 
         <div className="candidate-badge">
           <span className="candidate-dot" />
-          <div><strong>{evidenceLabel}</strong><small>Held-out test sealed</small></div>
+          <div><strong>{evidenceLabel}</strong><small>{finalEvaluated ? "Evaluated once · no retuning" : "Held-out test sealed"}</small></div>
         </div>
 
         <nav aria-label="MerchantShield modules">
@@ -524,7 +544,7 @@ export default function Home() {
           <a className="suite-nav-link" href="/abuse-rings"><Network size={17} /><span>Abuse Rings</span></a>
         </nav>
 
-        <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>Defense-only evidence</strong><span>Validation is visible. Final performance stays locked until the single held-out evaluation.</span></div></div>
+        <div className="sidebar-note"><LockKeyhole size={16} /><div><strong>Defense-only evidence</strong><span>{finalEvaluated ? "Final test evidence is loaded separately from validation. Post-test tuning is prohibited." : "Validation is visible. Final performance stays locked until the single held-out evaluation."}</span></div></div>
       </aside>
       {mobileOpen && <button className="nav-scrim" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
 
@@ -542,7 +562,7 @@ export default function Home() {
                 <div>
                   <span className="eyebrow">MerchantShield</span>
                   <h1>Cost-Aware Fraud<br />Decision Engine</h1>
-                  <p>Real IEEE-CIS evidence, chronological validation, and transparent model limitations—without presenting development results as final performance.</p>
+                  <p>Real IEEE-CIS evidence, chronological evaluation, and transparent model limitations—with validation development evidence kept separate from final test performance.</p>
                 </div>
                 <div className="hero-status"><ShieldCheck size={20} /><div><strong>{evidenceLabel}</strong><span>{candidateDescription}</span></div></div>
               </div>
@@ -573,8 +593,8 @@ export default function Home() {
                           ["Logistic baseline", "Complete", true, false],
                           ["CatBoost candidate", "Complete", true, false],
                           ["Validation cost + threshold analysis", thresholdAnalysisReady ? "Complete" : "Pending", thresholdAnalysisReady, false],
-                          ["Rule evaluation", "Pending", false, false],
-                          ["Held-out final evaluation", "Sealed", false, true],
+                          ["Rule policy", finalEvaluated ? "0 enabled" : "Pending", finalEvaluated, false],
+                          ["Held-out final evaluation", finalEvaluated ? "Complete" : "Sealed", finalEvaluated, !finalEvaluated],
                         ] as Array<[string, string, boolean, boolean]>).map(([label, state, done, locked]) => (
                           <div key={String(label)} className={done ? "complete" : locked ? "sealed" : "pending"}>
                             <i>{done ? <Check size={13} /> : locked ? <LockKeyhole size={12} /> : null}</i>
@@ -585,13 +605,23 @@ export default function Home() {
                     </article>
 
                     <article className="panel final-panel">
-                      <div className="panel-title"><div><span>FINAL HELD-OUT EVALUATION</span><h2>Still deliberately locked</h2></div><LockKeyhole size={19} /></div>
+                      <div className="panel-title"><div><span>FINAL HELD-OUT EVALUATION</span><h2>{finalEvidence ? "Later-period performance" : "Still deliberately locked"}</h2></div>{finalEvidence ? <ShieldCheck size={19} /> : <LockKeyhole size={19} />}</div>
                       <div className="locked-grid">
-                        {[
+                        {finalEvidence ? (
+                          <>
+                            <FinalValue label="Average Precision / PR-AUC" value={finalEvidence.average_precision.toFixed(6)} />
+                            <FinalValue label={`Precision @${finalEvidence.block_threshold.toFixed(3)}`} value={formatPercent(finalEvidence.precision)} />
+                            <FinalValue label={`Recall @${finalEvidence.block_threshold.toFixed(3)}`} value={formatPercent(finalEvidence.recall)} />
+                            <FinalValue label="F1" value={finalEvidence.f1.toFixed(6)} />
+                            <FinalValue label="False Positives" value={formatNumber(finalEvidence.false_positives)} />
+                            <FinalValue label="False Negatives" value={formatNumber(finalEvidence.false_negatives)} />
+                            <FinalValue label="Estimated scenario cost" value={formatCurrency(finalEvidence.total_estimated_cost)} />
+                          </>
+                        ) : [
                           "Average Precision", "Precision", "Recall", "F1", "False Positives", "False Negatives", "Estimated cost",
                         ].map((label) => <LockedValue key={label} label={label} />)}
                       </div>
-                      <p><LockKeyhole size={13} /> Held-out test remains sealed. Validation evidence is never relabelled as final performance.</p>
+                      <p>{finalEvidence ? <ShieldCheck size={13} /> : <LockKeyhole size={13} />} {finalEvidence ? `${formatNumber(finalEvidence.test_transaction_count)} held-out transactions evaluated once. Costs use illustrative merchant assumptions; no post-test tuning.` : "Held-out test remains sealed. Validation evidence is never relabelled as final performance."}</p>
                     </article>
                   </section>
 
@@ -615,13 +645,13 @@ export default function Home() {
                     <div className="split-timeline">
                       <div className="train" title={`TransactionDT ${formatNumber(status.split.train_transaction_dt_min)}–${formatNumber(status.split.train_transaction_dt_max)}`}><span>TRAIN</span><strong>{formatPercent(status.split.train_fraction, 0)}</strong><small>{formatNumber(status.split.train_rows)} transactions</small><em>TransactionDT {formatNumber(status.split.train_transaction_dt_min)}–{formatNumber(status.split.train_transaction_dt_max)}</em></div>
                       <div className="validation" title={`TransactionDT ${formatNumber(status.split.validation_transaction_dt_min)}–${formatNumber(status.split.validation_transaction_dt_max)}`}><span>VALIDATION</span><strong>{formatPercent(status.split.validation_fraction, 0)}</strong><small>{formatNumber(status.split.validation_rows)} transactions</small><em>TransactionDT {formatNumber(status.split.validation_transaction_dt_min)}–{formatNumber(status.split.validation_transaction_dt_max)}</em></div>
-                      <div className="test" title={`TransactionDT ${formatNumber(status.split.test_transaction_dt_min)}–${formatNumber(status.split.test_transaction_dt_max)}`}><span><LockKeyhole size={12} /> HELD-OUT TEST</span><strong>{formatPercent(status.split.test_fraction, 0)}</strong><small>{formatNumber(status.split.test_rows)} transactions</small><em>SEALED · TransactionDT {formatNumber(status.split.test_transaction_dt_min)}–{formatNumber(status.split.test_transaction_dt_max)}</em></div>
+                      <div className="test" title={`TransactionDT ${formatNumber(status.split.test_transaction_dt_min)}–${formatNumber(status.split.test_transaction_dt_max)}`}><span>{finalEvaluated ? <ShieldCheck size={12} /> : <LockKeyhole size={12} />} HELD-OUT TEST</span><strong>{formatPercent(status.split.test_fraction, 0)}</strong><small>{formatNumber(status.split.test_rows)} transactions</small><em>{finalEvaluated ? "EVALUATED ONCE" : "SEALED"} · TransactionDT {formatNumber(status.split.test_transaction_dt_min)}–{formatNumber(status.split.test_transaction_dt_max)}</em></div>
                     </div>
                     <div className="why-card"><Info size={17} /><p>Fraud patterns evolve over time. MerchantShield trains on earlier transactions and validates on later transactions rather than mixing future and past observations through a random split.</p></div>
                   </section>
 
                   <section className="section-block validation-section">
-                    <div className="validation-label"><span>VALIDATION RESULTS</span><small title="These metrics were measured on the chronological validation partition. The held-out test set remains sealed."><Info size={13} /> Not final held-out performance</small></div>
+                    <div className="validation-label"><span>VALIDATION RESULTS</span><small title="These metrics were measured on the chronological validation partition and remain separate from the final test artifact."><Info size={13} /> Development evidence—not final test</small></div>
                     <div className="section-heading"><div><span>MODEL VALIDATION COMPARISON</span><h2>Nonlinear ranking captures more signal</h2></div><div className="improvement-chip"><TrendingUp size={15} /><span>Average Precision improvement<strong>+{formatPercent(comparison.average_precision_relative_improvement, 2)}</strong></span></div></div>
                     <div className="comparison-layout">
                       <div className="comparison-table">
@@ -791,7 +821,7 @@ export default function Home() {
 
           {active === "cost" && (
             <section className="module-page cost-page">
-              <div className="compact-heading"><div><span className="eyebrow">VALIDATION SIMULATION READY</span><h1>Cost Lab</h1><p>Thresholds and business-cost estimates below were selected on the chronological validation partition. The held-out test remains sealed.</p></div><div className="validation-pill"><FlaskConical size={14} /> VALIDATION ONLY</div></div>
+              <div className="compact-heading"><div><span className="eyebrow">VALIDATION SIMULATION READY</span><h1>Cost Lab</h1><p>Thresholds and business-cost estimates below use the chronological validation partition. Final test results are never used to retune this lab.</p></div><div className="validation-pill"><FlaskConical size={14} /> VALIDATION ONLY</div></div>
               {costError && <EvidenceError message={costError} onRetry={() => setCostReloadKey((value) => value + 1)} />}
               {costScenarios && costSimulation && (
                 <>

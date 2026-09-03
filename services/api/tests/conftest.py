@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
+
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+psycopg://merchantshield_test:merchantshield_test@localhost:5432/merchantshield_test",
+)
+
 from app.database import Base, get_db
 from app.main import app
 from app.models import (

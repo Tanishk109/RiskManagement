@@ -310,7 +310,7 @@ export default function RiskCheck() {
     <section className="module-page risk-check-page">
       <div className="compact-heading risk-check-heading">
         <div><span className="eyebrow">FROZEN CATBOOST · VALIDATION THRESHOLDS</span><h1>Risk Check</h1><p>Submit one transaction or a temporary batch and convert model probability into a merchant action.</p></div>
-        <div className="risk-seal"><ShieldCheck size={16} /><span>Inference only</span><small>Held-out test sealed</small></div>
+        <div className="risk-seal"><ShieldCheck size={16} /><span>Inference only</span><small>Held-out labels excluded</small></div>
       </div>
 
       <div className="dataset-limitation" role="note">

@@ -71,7 +71,7 @@ class ChargebackEvidence(Base):
     original_filename: Mapped[str] = mapped_column(String(255))
     content_type: Mapped[str] = mapped_column(String(64))
     size_bytes: Mapped[int] = mapped_column(Integer)
-    storage_key: Mapped[str] = mapped_column(String(255), unique=True)
+    storage_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     case: Mapped[ChargebackCase] = relationship(back_populates="evidence")

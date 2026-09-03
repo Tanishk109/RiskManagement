@@ -3,7 +3,12 @@ PIP ?= .venv/bin/pip
 PYTHON_BOOTSTRAP ?= python3
 PYTHONPATH := ml/src:services/api
 
-.PHONY: install setup db-up db-migrate db-check db-sync data-check prepare-data eda train-baseline train-catboost train-primary threshold-analysis error-analysis evaluate benchmark seed-demo api web test lint typecheck docker-up
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
+
+.PHONY: install setup db-up db-status db-logs db-shell db-migrate db-check db-sync data-check prepare-data eda train-baseline train-catboost train-primary threshold-analysis error-analysis evaluate-preflight evaluate benchmark seed-demo api web test lint typecheck docker-up
 
 install: setup
 
@@ -11,7 +16,7 @@ setup:
 	$(PYTHON_BOOTSTRAP) -c 'import sys; assert sys.version_info >= (3, 11), "Python 3.11+ is required"'
 	$(PYTHON_BOOTSTRAP) -m venv .venv
 	$(PIP) install --upgrade pip
-	$(PIP) install -e './ml[test]' -e './services/api[test]'
+	$(PIP) install -e './ml[analysis,test]' -e './services/api[test]'
 	npm install
 
 data-check:
@@ -19,6 +24,15 @@ data-check:
 
 db-up:
 	docker compose up -d postgres
+
+db-status:
+	docker compose ps
+
+db-logs:
+	docker compose logs postgres
+
+db-shell:
+	docker compose exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 
 db-migrate:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m alembic -c services/api/alembic.ini upgrade head
@@ -49,6 +63,9 @@ threshold-analysis:
 error-analysis:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/error_analysis.py
 
+evaluate-preflight:
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/evaluate_final.py --preflight-only
+
 evaluate:
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/evaluate_final.py
 	PYTHONPATH=$(PYTHONPATH) $(PYTHON) ml/scripts/render_readme_results.py
@@ -66,7 +83,7 @@ web:
 	npm run dev
 
 test:
-	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m pytest ml/tests services/api/tests
+	PYTHONPATH=$(PYTHONPATH) $(PYTHON) -m pytest --import-mode=importlib ml/tests services/api/tests
 	npm test
 
 lint:

@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "model_version": "catboost-validation-v1",
+  "model_sha256": "a349f4d5049f467212bf83a2a1dccc2118c900a965b99a91f735e31aa869d56f",
+  "review_threshold": 0.175,
+  "block_threshold": 0.25,
+  "selection_split": "validation",
+  "held_out_test_path": "data/processed/ieee-cis/test.parquet",
+  "updated_at": "2026-09-02T17:25:51.629645+00:00"
+}

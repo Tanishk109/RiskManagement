@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-09-02T17:25:51.109058+00:00",
+  "python_version": "3.12.13",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "package_versions": {
+    "pandas": "2.2.3",
+    "numpy": "2.3.5",
+    "scikit-learn": "1.9.0",
+    "catboost": "1.2.10"
+  },
+  "random_seed": 42,
+  "model_parameters": {
+    "loss_function": "Logloss",
+    "eval_metric": "PRAUC:type=Classic",
+    "iterations": 1000,
+    "learning_rate": 0.05,
+    "depth": 7,
+    "l2_leaf_reg": 3.0,
+    "early_stopping_rounds": 80,
+    "thread_count": -1,
+    "allow_writing_files": false
+  },
+  "best_iteration": 989,
+  "actual_tree_count": 990,
+  "feature_names": [
+    "TransactionAmt",
+    "ProductCD",
+    "card4",
+    "card6",
+    "P_emaildomain",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "D1",
+    "D2",
+    "D3"
+  ],
+  "split_boundaries": {
+    "train_rows": 413378,
+    "validation_rows": 88581,
+    "test_rows": 88581,
+    "train_dt_min": 86400.0,
+    "train_dt_max": 10437996.0,
+    "validation_dt_min": 10438003.0,
+    "validation_dt_max": 13151840.0,
+    "test_dt_min": 13151880.0,
+    "test_dt_max": 15811131.0
+  },
+  "test_policy": "Held-out test used after TRAIN fit and VALIDATION-only selection freeze."
+}

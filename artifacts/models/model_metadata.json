@@ -1,0 +1,42 @@
+{
+  "status": "final_evaluated",
+  "model_name": "CatBoostClassifier",
+  "model_version": "catboost-validation-v1",
+  "trained_at": "2026-08-22T06:47:20.492668+00:00",
+  "evaluated_at": "2026-09-02T17:25:51.109058+00:00",
+  "feature_set": "baseline_conservative_combined_without_identity",
+  "feature_names": [
+    "TransactionAmt",
+    "ProductCD",
+    "card4",
+    "card6",
+    "P_emaildomain",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "D1",
+    "D2",
+    "D3"
+  ],
+  "categorical_feature_names": [
+    "ProductCD",
+    "card4",
+    "card6",
+    "P_emaildomain"
+  ],
+  "training_split": "first 70% by TransactionDT",
+  "selection_split": "next 15% by TransactionDT",
+  "evaluation_split": "final 15% by TransactionDT",
+  "thresholds": {
+    "review": 0.175,
+    "block": 0.25
+  },
+  "threshold_config_id": "catboost-validation-v1-moderate-final",
+  "calibration": "No post-hoc calibrator; frozen raw CatBoost probabilities.",
+  "model_artifact": "artifacts/models/catboost_candidate.cbm",
+  "model_sha256": "a349f4d5049f467212bf83a2a1dccc2118c900a965b99a91f735e31aa869d56f",
+  "model_retrained_for_final_evaluation": false,
+  "held_out_test_accessed": true
+}

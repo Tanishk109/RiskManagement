@@ -122,6 +122,8 @@ button { cursor: pointer; }
 .locked-value span, .locked-value strong { display: block; }
 .locked-value span { color: var(--muted); font-size: 9px; }
 .locked-value strong { margin-top: 7px; color: var(--faint); font-size: 11px; }
+.locked-value.final-value { background: var(--green-soft); border-color: #c7dfd1; }
+.locked-value.final-value strong { color: var(--green); font-size: 13px; }
 .final-panel > p { margin: 14px 0 0; padding: 12px; display: flex; align-items: flex-start; gap: 8px; color: var(--muted); background: #f3f6f4; border-radius: 9px; font-size: 9px; line-height: 1.5; }
 .final-panel > p svg { flex: 0 0 auto; }
 

@@ -1,0 +1,140 @@
+{
+  "generated_at": "2026-08-22T17:05:00.369661+00:00",
+  "data_source": "UCI Online Retail II (dataset 502)",
+  "uci_dataset_id": 502,
+  "proxy_disclosure": "The dataset provides cancellation/reversal outcomes and is used as a proxy for return-risk research; it is not a perfect physical-return label.",
+  "raw_line_rows": 1067371,
+  "order_rows": 53628,
+  "overall_cancellations": 8292,
+  "overall_prevalence": 0.1546207205191318,
+  "splits": {
+    "train": {
+      "rows": 37539,
+      "cancellations": 5972,
+      "non_cancellations": 31567,
+      "prevalence": 0.15908788193611978,
+      "start": "2009-12-01T07:45:00",
+      "end": "2011-05-17T14:16:00"
+    },
+    "validation": {
+      "rows": 8044,
+      "cancellations": 1230,
+      "non_cancellations": 6814,
+      "prevalence": 0.15290900049726505,
+      "start": "2011-05-17T14:32:00",
+      "end": "2011-09-21T09:54:00"
+    },
+    "test": {
+      "rows": 8045,
+      "cancellations": 1090,
+      "non_cancellations": 6955,
+      "prevalence": 0.13548788067122436,
+      "start": "2011-09-21T09:58:00",
+      "end": "2011-12-09T12:50:00"
+    }
+  },
+  "models": {
+    "logistic_regression": {
+      "name": "LogisticRegression",
+      "validation": {
+        "precision": 0.4230769230769231,
+        "recall": 0.9121951219512195,
+        "f1": 0.5780525502318392,
+        "average_precision": 0.624366655986056,
+        "threshold": 0.5,
+        "positives": 1230,
+        "negatives": 6814,
+        "predicted_positive": 2652,
+        "true_positives": 1122,
+        "false_positives": 1530,
+        "false_negatives": 108,
+        "true_negatives": 5284
+      },
+      "test": {
+        "precision": 0.3756549778315195,
+        "recall": 0.8550458715596331,
+        "f1": 0.52198263791655,
+        "average_precision": 0.5316466174526948,
+        "threshold": 0.5,
+        "positives": 1090,
+        "negatives": 6955,
+        "predicted_positive": 2481,
+        "true_positives": 932,
+        "false_positives": 1549,
+        "false_negatives": 158,
+        "true_negatives": 5406
+      }
+    },
+    "catboost": {
+      "name": "CatBoostClassifier",
+      "model_version": "returns-catboost-uci-v1",
+      "tree_count": 471,
+      "best_iteration": 470,
+      "validation": {
+        "precision": 0.6886904761904762,
+        "recall": 0.9406504065040651,
+        "f1": 0.7951890034364261,
+        "average_precision": 0.8952693303777837,
+        "threshold": 0.5,
+        "positives": 1230,
+        "negatives": 6814,
+        "predicted_positive": 1680,
+        "true_positives": 1157,
+        "false_positives": 523,
+        "false_negatives": 73,
+        "true_negatives": 6291
+      },
+      "test": {
+        "precision": 0.6617050067658998,
+        "recall": 0.8972477064220183,
+        "f1": 0.7616822429906542,
+        "average_precision": 0.8561512057564747,
+        "threshold": 0.5,
+        "positives": 1090,
+        "negatives": 6955,
+        "predicted_positive": 1478,
+        "true_positives": 978,
+        "false_positives": 500,
+        "false_negatives": 112,
+        "true_negatives": 6455
+      }
+    }
+  },
+  "risk_bands": {
+    "low": "p < 0.15",
+    "medium": "0.15 <= p < 0.5",
+    "high": "p >= 0.5",
+    "automatic_rejection": false
+  },
+  "feature_schema": [
+    "order_value",
+    "quantity",
+    "unique_stock_count",
+    "country",
+    "stock_code",
+    "prior_order_count",
+    "prior_cancellation_rate",
+    "prior_average_order_value",
+    "order_hour",
+    "order_day_of_week"
+  ],
+  "categorical_features": [
+    "country",
+    "stock_code"
+  ],
+  "leakage_controls": [
+    "Chronological train/validation/test partitions",
+    "Prior customer aggregates use shifted cumulative history only",
+    "Missing customer IDs receive isolated history keys",
+    "Invoice identifier and label prefix excluded from model features",
+    "Signed quantities converted to magnitudes"
+  ],
+  "ieee_cis_model_modified": false,
+  "ieee_cis_held_out_test_accessed": false,
+  "software": {
+    "python": "3.12.13",
+    "pandas": "2.2.3",
+    "scikit_learn": "1.9.0",
+    "catboost": "1.2.10"
+  }
+}

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import Select, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from ..models import (
@@ -137,8 +138,12 @@ def decide_review(db: Session, review_id: int, payload: ReviewDecisionRequest) -
     row.reviewer_reason = payload.reason
     row.reviewer_id = payload.reviewer_id
     row.reviewed_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(row)
+    try:
+        db.commit()
+        db.refresh(row)
+    except SQLAlchemyError:
+        db.rollback()
+        raise
     return review_out(row)
 
 
