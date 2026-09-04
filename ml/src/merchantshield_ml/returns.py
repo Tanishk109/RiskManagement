@@ -5,7 +5,6 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import average_precision_score, precision_recall_fscore_support
 
 RETURN_MODEL_VERSION = "returns-catboost-uci-v1"
 RETURN_DATA_SOURCE = "UCI Online Retail II (dataset 502)"
@@ -192,6 +191,10 @@ def return_binary_metrics(
     *,
     threshold: float = RETURN_HIGH_THRESHOLD,
 ) -> dict[str, float | int]:
+    # Metric calculation is used during offline evaluation, not runtime
+    # inference. Lazy loading keeps sklearn/scipy out of the deployed API.
+    from sklearn.metrics import average_precision_score, precision_recall_fscore_support
+
     truth = np.asarray(labels, dtype=int)
     scores = np.asarray(probabilities, dtype=float)
     predictions = (scores >= threshold).astype(int)

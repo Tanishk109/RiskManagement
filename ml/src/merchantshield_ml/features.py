@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import yaml
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+if TYPE_CHECKING:
+    from sklearn.compose import ColumnTransformer
 
 FORBIDDEN_MODEL_FEATURES = frozenset({"TransactionID", "isFraud", "actual_label"})
 
@@ -47,6 +46,14 @@ def feature_types(frame: pd.DataFrame, features: list[str]) -> tuple[list[str], 
 
 
 def build_preprocessor(frame: pd.DataFrame, features: list[str], *, scale_numeric: bool) -> ColumnTransformer:
+    # Keep training-only scikit-learn imports out of the inference API process.
+    # Importing sklearn/scipy eagerly costs enough resident memory to make the
+    # 512 MB Render instance unstable even though CatBoost inference itself fits.
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
     numeric, categorical = feature_types(frame, features)
     numeric_steps: list[tuple[str, Any]] = [("impute", SimpleImputer(strategy="median"))]
     if scale_numeric:

@@ -9,7 +9,6 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import precision_recall_curve
 
 from ..config import get_settings
 from .artifacts import ArtifactUnavailable
@@ -28,6 +27,47 @@ ValidationFilter = Literal[
 ]
 
 HIGH_VALUE_THRESHOLD = 500.0
+
+
+def _precision_recall_curve(labels: np.ndarray, scores: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the binary PR curve with NumPy only.
+
+    This matches the ordering and terminal point used by sklearn for binary
+    labels while avoiding a heavyweight sklearn/scipy import in the inference
+    API. The public response still comes exclusively from saved validation
+    labels and probabilities.
+    """
+
+    truth = np.asarray(labels, dtype=np.int8)
+    probabilities = np.asarray(scores, dtype=float)
+    if truth.ndim != 1 or probabilities.ndim != 1 or len(truth) != len(probabilities):
+        raise ValueError("Precision-recall inputs must be aligned one-dimensional arrays")
+    if not len(truth) or not np.isfinite(probabilities).all():
+        raise ValueError("Precision-recall inputs must be non-empty and finite")
+    if not np.isin(truth, (0, 1)).all():
+        raise ValueError("Precision-recall labels must be binary")
+
+    order = np.argsort(probabilities, kind="mergesort")[::-1]
+    ordered_truth = truth[order]
+    ordered_scores = probabilities[order]
+    distinct = np.where(np.diff(ordered_scores))[0]
+    threshold_indexes = np.r_[distinct, len(ordered_truth) - 1]
+    true_positives = np.cumsum(ordered_truth, dtype=np.int64)[threshold_indexes]
+    false_positives = 1 + threshold_indexes - true_positives
+    denominator = true_positives + false_positives
+    precision = np.divide(
+        true_positives,
+        denominator,
+        out=np.zeros_like(true_positives, dtype=float),
+        where=denominator != 0,
+    )
+    positive_count = int(true_positives[-1])
+    recall = (
+        true_positives / positive_count
+        if positive_count
+        else np.ones_like(true_positives, dtype=float)
+    )
+    return np.r_[precision[::-1], 1.0], np.r_[recall[::-1], 0.0]
 
 
 @dataclass(frozen=True)
@@ -401,7 +441,7 @@ class ProjectArtifactService:
         for name, frame in sources:
             if len(frame) != int(candidate["validation_rows"]):
                 raise ArtifactUnavailable(f"{name} validation predictions have an unexpected row count")
-            precision, recall, _ = precision_recall_curve(
+            precision, recall = _precision_recall_curve(
                 frame["actual_label"].to_numpy(dtype=int),
                 frame["fraud_probability"].to_numpy(dtype=float),
             )

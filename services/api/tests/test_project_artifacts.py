@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from app.main import app
@@ -10,12 +11,25 @@ from app.services.artifacts import ArtifactUnavailable
 from app.services.project_artifacts import (
     ArtifactPaths,
     ProjectArtifactService,
+    _precision_recall_curve,
     get_project_artifact_service,
 )
+from sklearn.metrics import precision_recall_curve
 
 
 def write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_runtime_precision_recall_curve_matches_sklearn() -> None:
+    labels = np.array([0, 1, 0, 1, 1, 0, 0, 1], dtype=int)
+    scores = np.array([0.1, 0.9, 0.4, 0.4, 0.8, 0.2, 0.1, 0.7], dtype=float)
+
+    expected_precision, expected_recall, _ = precision_recall_curve(labels, scores)
+    precision, recall = _precision_recall_curve(labels, scores)
+
+    np.testing.assert_allclose(precision, expected_precision, rtol=0, atol=0)
+    np.testing.assert_allclose(recall, expected_recall, rtol=0, atol=0)
 
 
 @pytest.fixture()

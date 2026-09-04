@@ -9,10 +9,8 @@ from typing import Any
 import catboost
 import numpy as np
 import pandas as pd
-import sklearn
 from catboost import CatBoostClassifier
 
-from .evaluate import binary_metrics
 from .features import validate_feature_schema
 
 CATBOOST_MODEL_NAME = "CatBoostClassifier"
@@ -155,6 +153,8 @@ def run_catboost_experiment(
     random_seed: int,
     threshold: float = DEFAULT_EVALUATION_THRESHOLD,
 ) -> CatBoostExperimentRun:
+    from .evaluate import binary_metrics
+
     train_features = normalize_catboost_features(train, features, categorical_features)
     validation_features = normalize_catboost_features(validation, features, categorical_features)
     model = build_catboost_classifier(
@@ -372,6 +372,8 @@ def validate_prediction_artifact(artifact: pd.DataFrame, *, expected_rows: int) 
 
 
 def software_versions() -> dict[str, str]:
+    import sklearn
+
     return {
         "python": platform.python_version(),
         "numpy": np.__version__,
