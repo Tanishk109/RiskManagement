@@ -6,9 +6,11 @@ from decimal import Decimal
 
 import pytest
 
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+psycopg://merchantshield_test:merchantshield_test@localhost:5432/merchantshield_test",
+# Keep API tests deterministic even when a developer's local .env is configured
+# for production Render/Neon deployment.
+os.environ["ENVIRONMENT"] = "test"
+os.environ["DATABASE_URL"] = (
+    "postgresql+psycopg://merchantshield_test:merchantshield_test@localhost:5432/merchantshield_test"
 )
 
 from app.database import Base, get_db

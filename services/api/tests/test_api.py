@@ -12,6 +12,20 @@ def test_health(client):
     assert response.json() == {"status": "ok"}
 
 
+def test_public_merchantshield_origin_is_allowed_by_cors(client):
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": "https://merchantshield-ai-risk-ops.tanishk10112004.chatgpt.site",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == (
+        "https://merchantshield-ai-risk-ops.tanishk10112004.chatgpt.site"
+    )
+
+
 def test_database_health_executes_a_real_query(client):
     response = client.get("/health/db")
     assert response.status_code == 200

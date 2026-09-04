@@ -1,17 +1,73 @@
+# Git
 .git
+.github
+.gitignore
+
+# Local environment / secrets
 .env
-.env.local
-.env.*.local
-.venv
-.next
-.vinext
-node_modules
-data/raw
-data/processed
-data/uploads
-artifacts/models
-artifacts/predictions
-**/__pycache__
-*.pyc
-.pytest_cache
-.ruff_cache
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+**/*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Tests / dev artifacts
+tests/
+coverage/
+.coverage
+htmlcov/
+
+# ML datasets - raw/training/test data never enter the production build context.
+data/raw/
+data/cache/
+data/uploads/
+data/processed/**
+**/*.csv
+**/*.parquet
+**/*.zst
+**/*.zip
+
+# Row-level predictions and non-production model formats.
+artifacts/predictions/
+artifacts/models/*.joblib
+artifacts/metrics/*predictions*.csv
+artifacts/metrics/*cases*.csv
+
+# Presentation and development-only outputs.
+artifacts/figures/
+artifacts/reports/*.md
+
+# Training artifacts not required by API
+notebooks/
+experiments/
+reports/
+
+# Docker / misc
+docker-compose.yml
+
+# Minimal read-only evidence needed by the public validation demo. These files
+# are intentionally still ignored by Git and are only available to a local,
+# approved production-image build. Held-out test rows remain excluded.
+!data/processed/ieee-cis/split_metadata.json
+!data/processed/ieee-cis/validation.parquet
+!artifacts/metrics/experiments.csv
+!artifacts/metrics/threshold_grid.parquet
+!artifacts/predictions/
+artifacts/predictions/**
+!artifacts/predictions/baseline_validation.parquet
+!artifacts/predictions/catboost_identity_ablation_validation.parquet
+!artifacts/reports/catboost_feature_importance.csv

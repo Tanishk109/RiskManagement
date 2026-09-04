@@ -55,6 +55,7 @@ class Settings(BaseModel):
             "http://localhost:3000",
             "http://localhost:3001",
             "http://localhost:3002",
+            "https://merchantshield-ai-risk-ops.tanishk10112004.chatgpt.site",
         ]
     )
 
@@ -107,7 +108,11 @@ def get_settings() -> Settings:
     origins = [
         item.strip()
         for item in os.getenv(
-            "CORS_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:3002"
+            "CORS_ORIGINS",
+            (
+                "http://localhost:3000,http://localhost:3001,http://localhost:3002,"
+                "https://merchantshield-ai-risk-ops.tanishk10112004.chatgpt.site"
+            ),
         ).split(",")
         if item.strip()
     ]

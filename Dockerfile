@@ -6,22 +6,27 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /workspace
 
+# Install runtime dependencies first for Docker layer caching
 COPY services/api/requirements.txt /tmp/requirements.txt
+
 RUN pip install \
     --no-cache-dir \
     --default-timeout=300 \
     --retries 10 \
     -r /tmp/requirements.txt
 
+# Copy runtime application code and configuration.
 COPY ml/src ./ml/src
 COPY ml/configs ./ml/configs
 COPY ml/scripts/sync_runtime_evidence.py ./ml/scripts/sync_runtime_evidence.py
 COPY services/api ./services/api
 COPY rules ./rules
+
+# Copy approved runtime model and aggregate evidence artifacts. Docker context
+# policy excludes every dataset, Parquet, CSV prediction export, and joblib file.
 COPY artifacts ./artifacts
 COPY data/processed/ieee-cis/split_metadata.json ./data/processed/ieee-cis/split_metadata.json
 COPY data/processed/ieee-cis/validation.parquet ./data/processed/ieee-cis/validation.parquet
-
 RUN test -f /workspace/artifacts/models/catboost_candidate.cbm \
     && test -f /workspace/artifacts/models/catboost_candidate_metadata.json \
     && test -f /workspace/artifacts/models/validation_operating_config.json \
@@ -36,8 +41,10 @@ RUN test -f /workspace/artifacts/models/catboost_candidate.cbm \
     && test -f /workspace/data/processed/ieee-cis/validation.parquet \
     && test ! -e /workspace/data/raw \
     && test ! -e /workspace/data/processed/ieee-cis/test.parquet \
-    && test ! -e /workspace/artifacts/metrics/final_test_predictions.csv \
-    && useradd --create-home appuser \
+    && test ! -e /workspace/artifacts/metrics/final_test_predictions.csv
+
+# Non-root runtime user
+RUN useradd --create-home appuser \
     && chown -R appuser:appuser /workspace
 
 USER appuser
